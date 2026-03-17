@@ -316,10 +316,10 @@
       </div>
       <div id="ptsg-chat-messages"></div>
       <div class="ptsg-quick-actions" id="ptsg-quick-actions">
-        <button class="ptsg-quick-btn" data-q="What SCADA solutions do you offer?">SCADA Solutions</button>
-        <button class="ptsg-quick-btn" data-q="Tell me about your water treatment automation services">Water Treatment</button>
-        <button class="ptsg-quick-btn" data-q="What IIoT solutions does PTSG provide?">IIoT Solutions</button>
-        <button class="ptsg-quick-btn" data-q="I'd like to discuss a project with your team">Contact Sales</button>
+        <button class="ptsg-quick-btn" data-q="Can you provide me a quote for a pump station panel?">Get a Quote</button>
+        <button class="ptsg-quick-btn" data-q="How much does a bulk water fill station cost?">Pricing Info</button>
+        <button class="ptsg-quick-btn" data-q="Can you diagnose an alarm issue with my PLC?">PLC Troubleshooting</button>
+        <button class="ptsg-quick-btn" data-q="We need to upgrade our water plant SCADA system">SCADA Upgrade</button>
       </div>
       <div id="ptsg-lead-form">
         <h4>Let's connect you with our team</h4>
