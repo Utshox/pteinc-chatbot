@@ -1,0 +1,26 @@
+{
+  "name": "pteinc",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "scrape": "node scraper/scrape.js",
+    "embed": "node scraper/embed.js",
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "setup": "npm run scrape && npm run embed"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.79.0",
+    "axios": "^1.13.6",
+    "cheerio": "^1.2.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "uuid": "^13.0.0"
+  }
+}

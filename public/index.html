@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PTSG AI Chatbot - Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .demo-page {
+      text-align: center;
+      max-width: 600px;
+      padding: 40px 24px;
+    }
+    .demo-page h1 {
+      font-size: 28px;
+      color: #0056b3;
+      margin-bottom: 8px;
+    }
+    .demo-page h2 {
+      font-size: 18px;
+      color: #666;
+      font-weight: 400;
+      margin-bottom: 32px;
+    }
+    .demo-page p {
+      color: #555;
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+    .badge {
+      display: inline-block;
+      background: #0056b3;
+      color: white;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      margin: 4px;
+    }
+    .features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 32px;
+      text-align: left;
+    }
+    .feature {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .feature h3 { font-size: 14px; color: #0056b3; margin-bottom: 6px; }
+    .feature p { font-size: 13px; color: #666; margin: 0; }
+    .arrow-hint {
+      margin-top: 40px;
+      color: #0056b3;
+      font-size: 14px;
+      animation: bounce 2s infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(5px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-page">
+    <h1>Pro-Tech Systems Group</h1>
+    <h2>AI-Powered Chatbot Demo</h2>
+    <p>This page demonstrates the PTSG RAG chatbot widget. Click the chat icon in the bottom-right corner to try it out.</p>
+
+    <div>
+      <span class="badge">RAG-Powered</span>
+      <span class="badge">Claude AI</span>
+      <span class="badge">Lead Capture</span>
+      <span class="badge">Knowledge Base</span>
+    </div>
+
+    <div class="features">
+      <div class="feature">
+        <h3>Knowledge-Grounded</h3>
+        <p>Answers are based on actual PTSG website content — not hallucinated.</p>
+      </div>
+      <div class="feature">
+        <h3>Lead Capture</h3>
+        <p>Captures visitor info for sales follow-up after engaged conversations.</p>
+      </div>
+      <div class="feature">
+        <h3>Session Memory</h3>
+        <p>Maintains conversation context across multiple messages.</p>
+      </div>
+      <div class="feature">
+        <h3>Embeddable</h3>
+        <p>Single script tag to embed on any WordPress or HTML page.</p>
+      </div>
+    </div>
+
+    <div class="arrow-hint">
+      Click the chat bubble in the bottom-right corner to start
+    </div>
+  </div>
+
+  <!-- The chatbot widget -->
+  <script src="/widget.js"></script>
+</body>
+</html>
