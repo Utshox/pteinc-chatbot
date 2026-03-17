@@ -3,7 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
-const Anthropic = require("@anthropic-ai/sdk");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { tokenize, tfidfVector, cosineSimilarity, STOPWORDS } = require("../scraper/embed");
 
 const app = express();
@@ -25,9 +25,6 @@ try {
   console.error("Knowledge base not found. Run `npm run setup` first.");
   process.exit(1);
 }
-
-// Initialize Claude
-const anthropic = new Anthropic();
 
 // Store conversation sessions (in-memory, use Redis for production)
 const sessions = new Map();
@@ -60,6 +57,13 @@ Rules:
 - Keep responses concise (2-4 sentences) unless more detail is needed
 - Include relevant links to pteinc.com pages when applicable
 - If the visitor seems like a potential lead (asking about pricing, projects, capabilities for their specific use case), encourage them to share their contact info or call PTSG`;
+
+// Initialize Gemini
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({
+  model: "gemini-2.5-flash",
+  systemInstruction: SYSTEM_PROMPT,
+});
 
 function searchKnowledgeBase(query, topK = 5) {
   const queryVec = tfidfVector(query, index.vocab, index.totalDocs, index.df);
@@ -103,28 +107,28 @@ app.post("/api/chat", async (req, res) => {
   // Build messages with context
   const userMessage = `Context from PTSG knowledge base:\n${context}\n\n---\nUser question: ${message}`;
 
-  session.messages.push({ role: "user", content: userMessage });
+  session.messages.push({ role: "user", parts: [{ text: userMessage }] });
 
   // Keep conversation history manageable (last 10 exchanges)
   const recentMessages = session.messages.slice(-20);
 
   try {
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 500,
-      system: SYSTEM_PROMPT,
-      messages: recentMessages,
+    const chat = model.startChat({
+      history: recentMessages.slice(0, -1), // all except the latest user message
     });
 
-    const assistantMessage = response.content[0].text;
-    session.messages.push({ role: "assistant", content: assistantMessage });
+    const lastMessage = recentMessages[recentMessages.length - 1].parts[0].text;
+    const response = await chat.sendMessage(lastMessage);
+    const assistantMessage = response.response.text();
+
+    session.messages.push({ role: "model", parts: [{ text: assistantMessage }] });
 
     res.json({
       reply: assistantMessage,
       sources: results.map((r) => ({ title: r.title, url: r.url })),
     });
   } catch (err) {
-    console.error("Claude API error:", err.message);
+    console.error("Gemini API error:", err.message);
     res.status(500).json({
       reply:
         "I'm having trouble connecting right now. Please call us at +1 (330) 773-9828 or email marketing@pteinc.com for immediate assistance.",
