@@ -209,7 +209,7 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", chunks: chunks.length });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`PTSG Chatbot server running on http://localhost:${PORT}`);
   console.log(`Widget available at http://localhost:${PORT}/widget.js`);
 });
