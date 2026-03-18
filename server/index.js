@@ -215,5 +215,8 @@ app.get("/api/health", (req, res) => {
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`PTSG Chatbot server running on http://localhost:${PORT}`);
   console.log(`Widget available at http://localhost:${PORT}/widget.js`);
-  console.log(`Gemini API key loaded: ${process.env.GEMINI_API_KEY ? "yes (" + process.env.GEMINI_API_KEY.substring(0, 8) + "...)" : "NO - MISSING!"}`);
+  const key = process.env.GEMINI_API_KEY;
+  console.log(`Gemini API key loaded: ${key ? "yes (" + key.substring(0, 8) + "...)" : "NO - MISSING!"}`);
+  const envKeys = Object.keys(process.env).filter(k => k.includes("GEMINI") || k.includes("gemini"));
+  console.log(`Env vars matching GEMINI: ${envKeys.length ? envKeys.join(", ") : "none found"}`);
 });
