@@ -211,7 +211,9 @@ app.post("/api/lead", async (req, res) => {
   console.log(`New lead captured: ${email}`);
 
   // Email the lead to the team
-  if (process.env.RESEND_API_KEY) {
+  const resendKey = process.env.RESEND_API_KEY;
+  console.log(`Resend key: ${resendKey ? "yes (" + resendKey.substring(0, 8) + "...)" : "MISSING"}`);
+  if (resendKey) {
     try {
       const resend = new Resend(process.env.RESEND_API_KEY);
       const notifyEmail = process.env.LEAD_NOTIFY_EMAIL || "iah.utshox@gmail.com";
