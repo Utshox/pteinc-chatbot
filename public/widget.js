@@ -119,6 +119,7 @@
       box-shadow: 0 8px 40px rgba(0, 0, 0, 0.15);
       flex-direction: column;
       overflow: hidden;
+      overscroll-behavior: contain;
       z-index: 99999;
     }
     #ptsg-chat-window.open { display: flex; }
@@ -184,6 +185,7 @@
     #ptsg-chat-messages {
       flex: 1;
       overflow-y: auto;
+      overscroll-behavior: contain;
       padding: 16px;
       display: flex;
       flex-direction: column;
@@ -333,6 +335,9 @@
       padding: 16px;
       flex-direction: column;
       gap: 10px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      flex: 1;
     }
     #ptsg-lead-form.show { display: flex; }
     #ptsg-lead-form h4 {
@@ -638,11 +643,14 @@
 
   function showLeadForm() {
     leadForm.classList.add("show");
+    messages.style.display = "none";
+    quickActions.style.display = "none";
     document.getElementById("ptsg-chat-input-area").style.display = "none";
   }
 
   function hideLeadForm() {
     leadForm.classList.remove("show");
+    messages.style.display = "flex";
     document.getElementById("ptsg-chat-input-area").style.display = "flex";
   }
 
