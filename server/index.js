@@ -4,6 +4,7 @@ const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { Resend } = require("resend");
 const { tokenize, tfidfVector, cosineSimilarity, STOPWORDS } = require("../scraper/embed");
 
 const app = express();
@@ -208,6 +209,35 @@ app.post("/api/lead", async (req, res) => {
   fs.writeFileSync(leadsPath, JSON.stringify(leads, null, 2));
 
   console.log(`New lead captured: ${email}`);
+
+  // Email the lead to the team
+  if (process.env.RESEND_API_KEY) {
+    try {
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      const notifyEmail = process.env.LEAD_NOTIFY_EMAIL || "iah.utshox@gmail.com";
+      await resend.emails.send({
+        from: "PTSG Chatbot <onboarding@resend.dev>",
+        to: notifyEmail,
+        subject: `New PTSG Lead: ${name || "Unknown"} - ${company || "No company"}`,
+        html: `
+          <h2>New Lead from PTSG Chatbot</h2>
+          <table style="border-collapse:collapse;width:100%;max-width:500px;">
+            <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Name</td><td style="padding:8px;border-bottom:1px solid #eee;">${name || "Not provided"}</td></tr>
+            <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Email</td><td style="padding:8px;border-bottom:1px solid #eee;"><a href="mailto:${email}">${email}</a></td></tr>
+            <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Phone</td><td style="padding:8px;border-bottom:1px solid #eee;">${phone ? `<a href="tel:${phone}">${phone}</a>` : "Not provided"}</td></tr>
+            <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Company</td><td style="padding:8px;border-bottom:1px solid #eee;">${company || "Not provided"}</td></tr>
+            <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Message</td><td style="padding:8px;border-bottom:1px solid #eee;">${message || "Not provided"}</td></tr>
+            <tr><td style="padding:8px;font-weight:bold;">Time</td><td style="padding:8px;">${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}</td></tr>
+          </table>
+          <p style="color:#888;font-size:12px;margin-top:16px;">Sent by PTSG AI Chatbot</p>
+        `,
+      });
+      console.log(`Lead email sent to ${notifyEmail}`);
+    } catch (emailErr) {
+      console.error("Failed to send lead email:", emailErr.message);
+    }
+  }
+
   res.json({ success: true, message: "Thank you! Our team will reach out shortly." });
 });
 
