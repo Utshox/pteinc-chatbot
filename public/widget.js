@@ -367,10 +367,11 @@
       color: white;
       border: none;
       border-radius: 8px;
-      padding: 10px;
-      font-size: 14px;
+      padding: 14px 10px;
+      font-size: 15px;
       cursor: pointer;
-      font-weight: 500;
+      font-weight: 600;
+      min-height: 48px;
     }
     #ptsg-lead-submit:hover { background: var(--ptsg-primary-dark); }
     #ptsg-lead-cancel {

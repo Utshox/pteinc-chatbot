@@ -164,7 +164,7 @@ app.post("/api/chat", async (req, res) => {
       sources: results.map((r) => ({ title: r.title, url: r.url })),
     });
   } catch (err) {
-    console.error("Gemini API error:", err.message);
+    console.error("Gemini API error:", err.message, err.stack);
     res.status(500).json({
       reply:
         "I'm having trouble connecting right now. Please call us at +1 (330) 773-9828 or email marketing@pteinc.com for immediate assistance.",
@@ -215,4 +215,5 @@ app.get("/api/health", (req, res) => {
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`PTSG Chatbot server running on http://localhost:${PORT}`);
   console.log(`Widget available at http://localhost:${PORT}/widget.js`);
+  console.log(`Gemini API key loaded: ${process.env.GEMINI_API_KEY ? "yes (" + process.env.GEMINI_API_KEY.substring(0, 8) + "...)" : "NO - MISSING!"}`);
 });
