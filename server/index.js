@@ -91,12 +91,16 @@ CRITICAL RULES:
 - Include a relevant pteinc.com link when it makes sense, but don't force it
 - Never make up prices — just say "depends on the setup" and offer to connect them with our team`;
 
-// Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({
-  model: "gemini-2.5-flash",
-  systemInstruction: SYSTEM_PROMPT,
-});
+// Lazy Gemini init — reads key at request time, not startup
+function getModel() {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw new Error("GEMINI_API_KEY is not set");
+  const genAI = new GoogleGenerativeAI(key);
+  return genAI.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    systemInstruction: SYSTEM_PROMPT,
+  });
+}
 
 function searchKnowledgeBase(query, topK = 5) {
   const queryVec = tfidfVector(query, index.vocab, index.totalDocs, index.df);
@@ -146,7 +150,7 @@ app.post("/api/chat", async (req, res) => {
   const recentMessages = session.messages.slice(-20);
 
   try {
-    const chat = model.startChat({
+    const chat = getModel().startChat({
       history: recentMessages.slice(0, -1), // all except the latest user message
     });
 
