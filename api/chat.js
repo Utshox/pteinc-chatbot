@@ -1,33 +1,12 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const path = require("path");
-const fs = require("fs");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const { tokenize, tfidfVector, cosineSimilarity, STOPWORDS } = require("../scraper/embed");
-
-const app = express();
-const PORT = process.env.PORT || 3001;
-
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, "..", "public")));
+const fs = require("fs");
+const path = require("path");
+const { tokenize, tfidfVector, cosineSimilarity } = require("../scraper/embed.js");
 
 // Load knowledge base
 const DATA_DIR = path.join(__dirname, "..", "data");
-let chunks, index;
-
-try {
-  chunks = JSON.parse(fs.readFileSync(path.join(DATA_DIR, "chunks.json"), "utf-8"));
-  index = JSON.parse(fs.readFileSync(path.join(DATA_DIR, "index.json"), "utf-8"));
-  console.log(`Loaded ${chunks.length} knowledge chunks`);
-} catch (err) {
-  console.error("Knowledge base not found. Run `npm run setup` first.");
-  process.exit(1);
-}
-
-// Store conversation sessions (in-memory, use Redis for production)
-const sessions = new Map();
+const chunks = JSON.parse(fs.readFileSync(path.join(DATA_DIR, "chunks.json"), "utf-8"));
+const index = JSON.parse(fs.readFileSync(path.join(DATA_DIR, "index.json"), "utf-8"));
 
 const SYSTEM_PROMPT = `You are the AI assistant for Pro-Tech Systems Group (PTSG), an industrial automation and control systems integration company based in Akron, Ohio with 30+ years of experience.
 
@@ -91,22 +70,13 @@ CRITICAL RULES:
 - Include a relevant pteinc.com link when it makes sense, but don't force it
 - Never make up prices — just say "depends on the setup" and offer to connect them with our team`;
 
-// Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({
-  model: "gemini-2.5-flash",
-  systemInstruction: SYSTEM_PROMPT,
-});
-
 function searchKnowledgeBase(query, topK = 5) {
   const queryVec = tfidfVector(query, index.vocab, index.totalDocs, index.df);
   const scores = index.vectors.map((vec, i) => ({
     index: i,
     score: cosineSimilarity(queryVec, vec),
   }));
-
   scores.sort((a, b) => b.score - a.score);
-
   return scores.slice(0, topK).filter((s) => s.score > 0.05).map((s) => ({
     content: chunks[s.index].content,
     title: chunks[s.index].title,
@@ -115,101 +85,54 @@ function searchKnowledgeBase(query, topK = 5) {
   }));
 }
 
-// Chat endpoint
-app.post("/api/chat", async (req, res) => {
-  const { message, sessionId } = req.body;
+module.exports = async function handler(req, res) {
+  // CORS
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  const { message, sessionId, history = [] } = req.body;
 
   if (!message || typeof message !== "string") {
     return res.status(400).json({ error: "Message is required" });
   }
 
-  // Get or create session
-  if (!sessions.has(sessionId)) {
-    sessions.set(sessionId, { messages: [], leadInfo: null });
-  }
-  const session = sessions.get(sessionId);
-
-  // Search knowledge base for relevant context
+  // Search knowledge base
   const results = searchKnowledgeBase(message);
   const context = results.length
-    ? results
-        .map((r) => `[Source: ${r.title} (${r.url})]\n${r.content}`)
-        .join("\n\n---\n\n")
+    ? results.map((r) => `[Source: ${r.title} (${r.url})]\n${r.content}`).join("\n\n---\n\n")
     : "No specific information found in the knowledge base for this query.";
 
-  // Build messages with context
   const userMessage = `Context from PTSG knowledge base:\n${context}\n\n---\nUser question: ${message}`;
 
-  session.messages.push({ role: "user", parts: [{ text: userMessage }] });
-
-  // Keep conversation history manageable (last 10 exchanges)
-  const recentMessages = session.messages.slice(-20);
+  // Build chat history from client (serverless = no server-side sessions)
+  const chatHistory = history.slice(-18).map((m) => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }],
+  }));
 
   try {
-    const chat = model.startChat({
-      history: recentMessages.slice(0, -1), // all except the latest user message
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      systemInstruction: SYSTEM_PROMPT,
     });
 
-    const lastMessage = recentMessages[recentMessages.length - 1].parts[0].text;
-    const response = await chat.sendMessage(lastMessage);
-    const assistantMessage = response.response.text();
-
-    session.messages.push({ role: "model", parts: [{ text: assistantMessage }] });
+    const chat = model.startChat({ history: chatHistory });
+    const response = await chat.sendMessage(userMessage);
+    const reply = response.response.text();
 
     res.json({
-      reply: assistantMessage,
+      reply,
       sources: results.map((r) => ({ title: r.title, url: r.url })),
     });
   } catch (err) {
     console.error("Gemini API error:", err.message);
     res.status(500).json({
-      reply:
-        "I'm having trouble connecting right now. Please call us at +1 (330) 773-9828 or email marketing@pteinc.com for immediate assistance.",
+      reply: "I'm having trouble connecting right now. Call us at +1 (330) 773-9828 or email marketing@pteinc.com.",
       sources: [],
     });
   }
-});
-
-// Lead capture endpoint
-app.post("/api/lead", async (req, res) => {
-  const { name, email, phone, company, message, sessionId } = req.body;
-
-  if (!email) {
-    return res.status(400).json({ error: "Email is required" });
-  }
-
-  const lead = {
-    name,
-    email,
-    phone,
-    company,
-    message,
-    sessionId,
-    timestamp: new Date().toISOString(),
-    chatHistory: sessions.has(sessionId)
-      ? sessions.get(sessionId).messages.slice(-10)
-      : [],
-  };
-
-  // Save lead to file (use a database in production)
-  const leadsPath = path.join(DATA_DIR, "leads.json");
-  let leads = [];
-  if (fs.existsSync(leadsPath)) {
-    leads = JSON.parse(fs.readFileSync(leadsPath, "utf-8"));
-  }
-  leads.push(lead);
-  fs.writeFileSync(leadsPath, JSON.stringify(leads, null, 2));
-
-  console.log(`New lead captured: ${email}`);
-  res.json({ success: true, message: "Thank you! Our team will reach out shortly." });
-});
-
-// Health check
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", chunks: chunks.length });
-});
-
-app.listen(PORT, () => {
-  console.log(`PTSG Chatbot server running on http://localhost:${PORT}`);
-  console.log(`Widget available at http://localhost:${PORT}/widget.js`);
-});
+};

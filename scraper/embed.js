@@ -131,4 +131,8 @@ function main() {
 }
 
 module.exports = { tokenize, tfidfVector, cosineSimilarity, STOPWORDS };
-main();
+
+// Only run main() when executed directly, not when imported
+if (require.main === module) {
+  main();
+}

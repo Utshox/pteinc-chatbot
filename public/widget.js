@@ -238,6 +238,30 @@
       background: var(--ptsg-light);
     }
 
+    .ptsg-contact-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: none;
+      border: 1px solid var(--ptsg-primary);
+      border-radius: 14px;
+      padding: 4px 10px;
+      font-size: 11px;
+      cursor: pointer;
+      color: var(--ptsg-primary);
+      margin-top: 8px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .ptsg-contact-btn:hover {
+      background: var(--ptsg-primary);
+      color: white;
+    }
+    .ptsg-contact-btn svg {
+      width: 12px;
+      height: 12px;
+      fill: currentColor;
+    }
+
     /* Lead capture form */
     #ptsg-lead-form {
       display: none;
@@ -360,6 +384,7 @@
   let isOpen = false;
   let isLoading = false;
   let messageCount = 0;
+  let chatHistory = []; // client-side history for serverless backend
 
   function toggleChat() {
     isOpen = !isOpen;
@@ -401,6 +426,15 @@
           .map((s) => `<a href="${s.url}" target="_blank" rel="noopener">${s.title}</a>`)
           .join(" | ");
       div.appendChild(srcDiv);
+    }
+
+    // Add contact button after every bot reply (skip the welcome message)
+    if (messageCount > 0) {
+      const contactBtn = document.createElement("button");
+      contactBtn.className = "ptsg-contact-btn";
+      contactBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg> Talk to our team';
+      contactBtn.addEventListener("click", showLeadForm);
+      div.appendChild(contactBtn);
     }
 
     messages.appendChild(div);
@@ -445,10 +479,12 @@
       const res = await fetch(CHAT_API + "/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, sessionId }),
+        body: JSON.stringify({ message: text, sessionId, history: chatHistory }),
       });
       const data = await res.json();
       hideTyping();
+      chatHistory.push({ role: "user", content: text });
+      chatHistory.push({ role: "assistant", content: data.reply });
       addBotMessage(data.reply, data.sources || []);
 
       // After a few messages, check if we should prompt for lead capture
