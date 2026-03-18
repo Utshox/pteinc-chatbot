@@ -21,8 +21,8 @@
   const style = document.createElement("style");
   style.textContent = `
     #ptsg-chat-widget {
-      --ptsg-primary: #0056b3;
-      --ptsg-primary-dark: #003d80;
+      --ptsg-primary: #e53c2e;
+      --ptsg-primary-dark: #c4301f;
       --ptsg-bg: #ffffff;
       --ptsg-text: #333333;
       --ptsg-light: #f5f7fa;
@@ -35,32 +35,80 @@
     }
 
     #ptsg-chat-toggle {
-      width: 60px;
-      height: 60px;
+      width: 72px;
+      height: 72px;
       border-radius: 50%;
       background: var(--ptsg-primary);
       border: none;
       cursor: pointer;
-      box-shadow: 0 4px 20px rgba(0, 86, 179, 0.4);
+      box-shadow: 0 4px 24px rgba(229, 60, 46, 0.45);
       display: flex;
       align-items: center;
       justify-content: center;
       transition: transform 0.2s, box-shadow 0.2s;
+      animation: ptsg-pulse 2.5s infinite;
     }
     #ptsg-chat-toggle:hover {
-      transform: scale(1.05);
-      box-shadow: 0 6px 25px rgba(0, 86, 179, 0.5);
+      transform: scale(1.08);
+      box-shadow: 0 6px 30px rgba(229, 60, 46, 0.55);
+      animation: none;
     }
     #ptsg-chat-toggle svg {
-      width: 28px;
-      height: 28px;
+      width: 34px;
+      height: 34px;
       fill: white;
+    }
+    @keyframes ptsg-pulse {
+      0%, 100% { box-shadow: 0 4px 24px rgba(229, 60, 46, 0.45); }
+      50% { box-shadow: 0 4px 35px rgba(229, 60, 46, 0.7); }
+    }
+
+    #ptsg-greeting {
+      position: fixed;
+      bottom: 106px;
+      right: 24px;
+      background: white;
+      color: #333;
+      padding: 12px 18px;
+      border-radius: 12px;
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+      font-size: 14px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 240px;
+      z-index: 99998;
+      animation: ptsg-greet-in 0.4s ease-out;
+      cursor: pointer;
+      line-height: 1.4;
+    }
+    #ptsg-greeting:hover { background: #fafafa; }
+    #ptsg-greeting .close-greet {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      width: 20px;
+      height: 20px;
+      background: #999;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+    #ptsg-greeting .close-greet:hover { background: #666; }
+    @keyframes ptsg-greet-in {
+      0% { opacity: 0; transform: translateY(10px) scale(0.95); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     #ptsg-chat-window {
       display: none;
       position: fixed;
-      bottom: 96px;
+      bottom: 108px;
       right: 24px;
       width: 380px;
       max-width: calc(100vw - 48px);
@@ -369,6 +417,30 @@
   `;
   document.body.appendChild(widget);
 
+  // Greeting bubble — shows after 3 seconds
+  let greetingEl = null;
+  function showGreeting() {
+    if (sessionStorage.getItem("ptsg_greet_dismissed") || isOpen) return;
+    greetingEl = document.createElement("div");
+    greetingEl.id = "ptsg-greeting";
+    greetingEl.innerHTML = '<button class="close-greet">&times;</button>Hi there! Need help with automation, SCADA, or a quote? I\'m here to help!';
+    document.body.appendChild(greetingEl);
+
+    greetingEl.querySelector(".close-greet").addEventListener("click", (e) => {
+      e.stopPropagation();
+      dismissGreeting();
+    });
+    greetingEl.addEventListener("click", () => {
+      dismissGreeting();
+      toggleChat();
+    });
+  }
+  function dismissGreeting() {
+    if (greetingEl) { greetingEl.remove(); greetingEl = null; }
+    sessionStorage.setItem("ptsg_greet_dismissed", "true");
+  }
+  setTimeout(showGreeting, 3000);
+
   // Elements
   const toggle = document.getElementById("ptsg-chat-toggle");
   const chatWindow = document.getElementById("ptsg-chat-window");
@@ -389,6 +461,7 @@
   function toggleChat() {
     isOpen = !isOpen;
     chatWindow.classList.toggle("open", isOpen);
+    if (isOpen) dismissGreeting();
     if (isOpen && messageCount === 0) {
       addBotMessage(
         "Hi! I'm the PTSG AI assistant. I can help you learn about our industrial automation services, SCADA solutions, IIoT, and more. How can I help you today?"
