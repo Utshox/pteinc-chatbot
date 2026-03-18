@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:pteinc.com)",
+      "WebFetch(domain:www.pteinc.com)",
+      "Bash(npm -v)",
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(git init:*)",
+      "Bash(du -sh data/*)",
+      "Bash(gh auth:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(gh repo:*)",
+      "Bash(open:*)",
+      "Bash(npm start:*)",
+      "Bash(curl -s http://localhost:3001/api/health)",
+      "Bash(python3 -m json.tool)",
+      "Bash(pkill -f \"node server/index.js\")",
+      "Bash(curl -s -X POST http://localhost:3001/api/chat -H \"Content-Type: application/json\" -d '{\"\"\"\"message\"\"\"\": \"\"\"\"What SCADA services does PTSG offer?\"\"\"\", \"\"\"\"sessionId\"\"\"\": \"\"\"\"test-1\"\"\"\"}')",
+      "Bash(curl -s -X POST http://localhost:3001/api/chat -H \"Content-Type: application/json\" -d '{\"\"\"\"message\"\"\"\": \"\"\"\"What SCADA services does PTSG offer?\"\"\"\", \"\"\"\"sessionId\"\"\"\": \"\"\"\"test-2\"\"\"\"}')",
+      "Bash(git push:*)",
+      "Bash(curl -s -X POST http://localhost:3001/api/chat -H \"Content-Type: application/json\" -d '{\"\"\"\"message\"\"\"\": \"\"\"\"Can you provide me a quote for a pump station panel?\"\"\"\", \"\"\"\"sessionId\"\"\"\": \"\"\"\"test-quote\"\"\"\"}')",
+      "Bash(curl -s -X POST http://localhost:3001/api/chat -H \"Content-Type: application/json\" -d '{\"\"\"\"message\"\"\"\": \"\"\"\"Can you provide me a quote for a pump station panel?\"\"\"\", \"\"\"\"sessionId\"\"\"\": \"\"\"\"test-tone\"\"\"\"}')",
+      "Bash(railway --version)",
+      "Bash(git reset:*)",
+      "Bash(git filter-branch:*)",
+      "Bash(gh api:*)",
+      "Bash(FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f --env-filter '\nexport GIT_AUTHOR_NAME=\"Utshox\"\nexport GIT_AUTHOR_EMAIL=\"32913328+Utshox@users.noreply.github.com\"\nexport GIT_COMMITTER_NAME=\"Utshox\"\nexport GIT_COMMITTER_EMAIL=\"32913328+Utshox@users.noreply.github.com\"\n' -- --all)",
+      "Bash(while read:*)",
+      "Bash(do git:*)",
+      "Bash(done)",
+      "Bash(curl:*)",
+      "Bash(git rm:*)"
+    ]
+  }
+}
