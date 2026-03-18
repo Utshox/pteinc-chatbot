@@ -122,7 +122,10 @@ module.exports = async function handler(req, res) {
 
     const chat = model.startChat({ history: chatHistory });
     const response = await chat.sendMessage(userMessage);
-    const reply = response.response.text();
+    const candidate = response.response.candidates?.[0];
+    const reply = candidate?.content?.parts?.[0]?.text
+      || response.response.text?.()
+      || "Hmm, that's a bit outside my wheelhouse! I'm here to help with industrial automation, SCADA, control systems, and related topics. What can I help you with?";
 
     res.json({
       reply,

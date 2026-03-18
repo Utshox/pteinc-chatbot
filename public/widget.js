@@ -153,8 +153,24 @@
       font-size: 12px;
       opacity: 0.85;
     }
-    #ptsg-chat-close {
+    .ptsg-header-actions {
       margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #ptsg-chat-restart {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      font-size: 11px;
+      cursor: pointer;
+      padding: 4px 10px;
+      border-radius: 12px;
+      opacity: 0.85;
+    }
+    #ptsg-chat-restart:hover { opacity: 1; background: rgba(255,255,255,0.3); }
+    #ptsg-chat-close {
       background: none;
       border: none;
       color: white;
@@ -293,16 +309,17 @@
       background: none;
       border: 1px solid var(--ptsg-primary);
       border-radius: 14px;
-      padding: 4px 10px;
+      padding: 5px 12px;
       font-size: 11px;
       cursor: pointer;
       color: var(--ptsg-primary);
-      margin-top: 8px;
+      margin-top: 10px;
+      margin-bottom: 2px;
       transition: background 0.15s, color 0.15s;
     }
     .ptsg-contact-btn:hover {
-      background: var(--ptsg-primary);
-      color: white;
+      background: var(--ptsg-light);
+      color: #333;
     }
     .ptsg-contact-btn svg {
       width: 12px;
@@ -384,7 +401,10 @@
           <h3>PTSG Assistant</h3>
           <p>Industrial Automation Expert</p>
         </div>
-        <button id="ptsg-chat-close">&times;</button>
+        <div class="ptsg-header-actions">
+          <button id="ptsg-chat-restart">Start Over</button>
+          <button id="ptsg-chat-close">&times;</button>
+        </div>
       </div>
       <div id="ptsg-chat-messages"></div>
       <div class="ptsg-quick-actions" id="ptsg-quick-actions">
@@ -452,6 +472,7 @@
   const leadForm = document.getElementById("ptsg-lead-form");
   const leadSubmit = document.getElementById("ptsg-lead-submit");
   const leadCancel = document.getElementById("ptsg-lead-cancel");
+  const restartBtn = document.getElementById("ptsg-chat-restart");
 
   let isOpen = false;
   let isLoading = false;
@@ -473,6 +494,17 @@
   toggle.addEventListener("click", toggleChat);
   closeBtn.addEventListener("click", toggleChat);
 
+  restartBtn.addEventListener("click", () => {
+    messages.innerHTML = "";
+    chatHistory = [];
+    messageCount = 0;
+    quickActions.style.display = "flex";
+    sessionStorage.removeItem("ptsg_lead_prompted");
+    addBotMessage(
+      "Hi! I'm the PTSG AI assistant. I can help you learn about our industrial automation services, SCADA solutions, IIoT, and more. How can I help you today?"
+    );
+  });
+
   function addBotMessage(text, sources = []) {
     const div = document.createElement("div");
     div.className = "ptsg-msg bot";
@@ -486,6 +518,18 @@
     html = html.replace(
       /(https?:\/\/[^\s<]+)/g,
       '<a href="$1" target="_blank" rel="noopener">$1</a>'
+    );
+
+    // Make phone numbers clickable
+    html = html.replace(
+      /\+?1?\s*\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/g,
+      (match) => `<a href="tel:${match.replace(/[\s()-]/g, "")}">${match}</a>`
+    );
+
+    // Make email addresses clickable
+    html = html.replace(
+      /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g,
+      '<a href="mailto:$1">$1</a>'
     );
 
     div.innerHTML = html;

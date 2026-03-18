@@ -152,7 +152,10 @@ app.post("/api/chat", async (req, res) => {
 
     const lastMessage = recentMessages[recentMessages.length - 1].parts[0].text;
     const response = await chat.sendMessage(lastMessage);
-    const assistantMessage = response.response.text();
+    const candidate = response.response.candidates?.[0];
+    const assistantMessage = candidate?.content?.parts?.[0]?.text
+      || response.response.text?.()
+      || "Hmm, that's a bit outside my wheelhouse! I'm here to help with industrial automation, SCADA, control systems, and related topics. What can I help you with?";
 
     session.messages.push({ role: "model", parts: [{ text: assistantMessage }] });
 
