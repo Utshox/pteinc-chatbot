@@ -182,7 +182,9 @@ Return JSON only with this exact shape:
   "interest_category": "one short label",
   "buying_stage": "awareness|research|quote-ready|support|unknown",
   "topics": ["topic 1", "topic 2", "topic 3"],
-  "sentiment": "positive|neutral|frustrated|urgent|unknown"
+  "sentiment": "positive|neutral|frustrated|urgent|unknown",
+  "lead_temperature": "cold|warm|hot",
+  "recommended_follow_up": "one short internal sales/content action"
 }
 
 Recent user messages:
