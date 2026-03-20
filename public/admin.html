@@ -65,6 +65,21 @@
       overflow: hidden;
     }
 
+    .brand-lockup {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .brand-lockup img {
+      width: 180px;
+      max-width: 42%;
+      height: auto;
+      display: block;
+      filter: drop-shadow(0 10px 24px rgba(124, 35, 24, 0.12));
+    }
+
     .hero-card::after {
       content: "";
       position: absolute;
@@ -286,6 +301,30 @@
       line-height: 1.6;
     }
 
+    .signal-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .signal {
+      background: rgba(255,255,255,0.14);
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 16px;
+      padding: 12px 14px;
+    }
+
+    .signal .label {
+      color: rgba(255,255,255,0.72);
+      margin-bottom: 6px;
+    }
+
+    .signal .value {
+      color: white;
+      font-weight: 700;
+    }
+
     .detail-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -412,7 +451,8 @@
       .grid,
       .detail-grid,
       .info-grid,
-      .overview-grid {
+      .overview-grid,
+      .signal-row {
         grid-template-columns: 1fr;
       }
 
@@ -426,13 +466,19 @@
   <div class="shell">
     <section class="hero">
       <div class="hero-card">
-        <div class="eyebrow">Internal Analytics</div>
+        <div class="brand-lockup">
+          <img src="https://www.pteinc.com/wp-content/uploads/2021/03/Protechlogo.png" alt="Pro-Tech Systems Group logo" />
+          <div>
+            <div class="eyebrow">Internal Analytics</div>
+            <div class="pill">SCADA + Controls + Field Services</div>
+          </div>
+        </div>
         <h1>Chatbot Visitor Intelligence</h1>
         <p class="subtitle">
-          Review who is asking what, how serious they sound, which services they care about, and whether they already left contact details.
+          Review who is asking what, how serious they sound, which services they care about, and whether they already left contact details. Tuned for Pro-Tech's open-architecture automation, SCADA, IIoT, and service conversations.
         </p>
         <div class="hero-meta">
-          <div class="pill">Live session snapshots</div>
+          <div class="pill">Open-architecture lead review</div>
           <div class="pill">Gemini interest summaries</div>
           <div class="pill">Lead details + conversation trail</div>
         </div>
@@ -457,6 +503,11 @@
           <h2>Lead Rate</h2>
           <div class="metric" id="metric-rate">0%</div>
           <div class="metric-note">Share of sessions that reached a lead submission.</div>
+        </div>
+        <div class="overview-card">
+          <h2>Hot Leads</h2>
+          <div class="metric" id="metric-hot">0</div>
+          <div class="metric-note">Sessions Gemini marked as high-priority follow-up opportunities.</div>
         </div>
       </div>
     </section>
@@ -503,6 +554,7 @@
       metricMessages: document.getElementById("metric-messages"),
       metricLeads: document.getElementById("metric-leads"),
       metricRate: document.getElementById("metric-rate"),
+      metricHot: document.getElementById("metric-hot"),
       topicSummary: document.getElementById("topic-summary"),
       stageSummary: document.getElementById("stage-summary"),
     };
@@ -555,6 +607,7 @@
       els.metricMessages.textContent = data.overview.totalMessages;
       els.metricLeads.textContent = data.overview.leads;
       els.metricRate.textContent = data.overview.leadRate + "%";
+      els.metricHot.textContent = data.overview.hotLeads;
 
       els.topicSummary.innerHTML = data.overview.topTopics.length
         ? data.overview.topTopics.map((item) => `<span class="tag">${escapeHtml(item.topic)} <strong>${item.count}</strong></span>`).join("")
@@ -587,6 +640,7 @@
               <span class="tag">${escapeHtml(summary.buying_stage || "unknown")}</span>
               <span class="tag">${escapeHtml(session.metadata?.deviceType || "device?")}</span>
               <span class="tag">${escapeHtml(session.metadata?.browser || "browser?")}</span>
+              ${summary.lead_temperature ? `<span class="tag">${escapeHtml(summary.lead_temperature)}</span>` : ""}
               ${lead ? '<span class="tag success">Lead captured</span>' : ""}
             </div>
           </button>
@@ -613,8 +667,23 @@
           <div class="tag-row" style="margin-top: 14px;">
             <span class="tag">${escapeHtml(summary.buying_stage || "unknown")}</span>
             <span class="tag">${escapeHtml(summary.sentiment || "unknown")}</span>
+            <span class="tag">${escapeHtml(summary.lead_temperature || "cold")}</span>
             <span class="tag">${escapeHtml(metadata.deviceType || "unknown device")}</span>
             ${lead ? '<span class="tag success">Lead submitted</span>' : ""}
+          </div>
+          <div class="signal-row">
+            <div class="signal">
+              <span class="label">Possible Interest</span>
+              <div class="value">${escapeHtml(summary.interest_category || "General inquiry")}</div>
+            </div>
+            <div class="signal">
+              <span class="label">Follow-Up</span>
+              <div class="value">${escapeHtml(summary.recommended_follow_up || "Review conversation and respond as needed")}</div>
+            </div>
+            <div class="signal">
+              <span class="label">Lead Temperature</span>
+              <div class="value">${escapeHtml(summary.lead_temperature || "cold")}</div>
+            </div>
           </div>
         </section>
 

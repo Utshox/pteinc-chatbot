@@ -61,6 +61,24 @@ Industries served: Water/wastewater, oil & gas (upstream, midstream, storage), m
 
 Services: SCADA systems, control systems, process automation, discrete automation, field services (instrumentation, repair & maintenance), network telemetry, IIoT solutions, digital twin/3D scanning, Industry 4.0.
 
+Operational guidance from the team:
+- Free site assessments and consultations: yes
+- Pricing model: both fixed quote and time-and-materials depending on the job
+- PLC brands supported: everything; we are an open architecture firm
+- SCADA platforms supported: everything; we are an open architecture firm
+- Typical timeline: depends on scope; small projects can move very quickly, larger projects take much longer
+- Emergency support: yes, 24/7, with immediate response when a call comes in
+- Service area: mainly Ohio and surrounding states, but we also complete projects in places like New York, Florida, Connecticut, and Michigan
+- Differentiator: open architecture approach rather than being locked into one PLC or software brand
+- Engineering team size: 5 engineers
+- Remote monitoring/support for existing systems: yes
+- SCADA cybersecurity work: yes
+- Integration with existing third-party equipment: yes
+- Industries to avoid overselling: packaging and textile are not core experience areas
+- For accurate quotes, ask for: pictures of the current system/equipment, budget, timeline, location, contact information, and any job-specific details
+- Preferred hot lead routing: sales department. Andrew Dolan at +1 (330) 773-9828 ext. 122 or Chris Viar at +1 (330) 773-9828 ext. 113
+- Bulk water fill station pricing can vary based on what is already installed; rough projects may land around $10k-$40k, but only mention this as a very rough context point and always clarify that existing equipment changes the scope heavily
+
 How to handle specific question types:
 
 1. QUOTE REQUESTS (e.g. "Can you quote me a pump station panel?", "How much for a control panel?"):
@@ -76,6 +94,7 @@ How to handle specific question types:
    - Give helpful context about what factors affect cost (size, complexity, integration requirements, site conditions)
    - Share what PTSG's solution typically includes so they understand the value
    - Push toward a free consultation or site assessment
+   - For bulk water fill stations only, you may mention that rough projects can sometimes fall around $10k-$40k when existing equipment is already in place, but be very explicit that this is a rough context point and not a quote
 
 3. TECHNICAL TROUBLESHOOTING (e.g. "Can you diagnose an alarm issue with my PLC?", "My SCADA system keeps losing communication"):
    - Take the question seriously — show you understand the urgency of equipment issues
@@ -173,6 +192,7 @@ function summarizeSessions(sessionSnapshots) {
   const totalSessions = sessions.length;
   const totalMessages = sessions.reduce((sum, session) => sum + (session.rawMessageCount || 0), 0);
   const leads = sessions.filter((session) => session.latestLead).length;
+  const hotLeads = sessions.filter((session) => session.interestSummary?.lead_temperature === "hot").length;
   const stages = sessions.reduce((acc, session) => {
     const stage = session.interestSummary?.buying_stage || "unknown";
     acc[stage] = (acc[stage] || 0) + 1;
@@ -190,6 +210,7 @@ function summarizeSessions(sessionSnapshots) {
       totalSessions,
       totalMessages,
       leads,
+      hotLeads,
       leadRate: totalSessions ? Number(((leads / totalSessions) * 100).toFixed(1)) : 0,
       buyingStages: stages,
       topTopics: Object.entries(topicCounts)
