@@ -18,6 +18,7 @@ const {
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
 
 app.use(cors());
 app.use(express.json());
@@ -222,6 +223,87 @@ function summarizeSessions(sessionSnapshots) {
   };
 }
 
+function getAdminToken(req) {
+  const authHeader = req.headers.authorization || "";
+  if (authHeader.startsWith("Bearer ")) {
+    return authHeader.slice("Bearer ".length).trim();
+  }
+  return req.query.token || req.headers["x-admin-token"] || "";
+}
+
+function requireAdmin(req, res, next) {
+  if (!ADMIN_TOKEN) {
+    return next();
+  }
+
+  const provided = getAdminToken(req);
+  if (provided !== ADMIN_TOKEN) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  next();
+}
+
+function csvCell(value) {
+  const text = String(value ?? "");
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function buildAnalyticsCsv(sessionSnapshots) {
+  const headers = [
+    "sessionId",
+    "startedAt",
+    "lastSeenAt",
+    "ip",
+    "pageUrl",
+    "pageTitle",
+    "deviceType",
+    "browser",
+    "os",
+    "buyingStage",
+    "leadTemperature",
+    "sentiment",
+    "interestCategory",
+    "interestSummary",
+    "recommendedFollowUp",
+    "topics",
+    "leadName",
+    "leadEmail",
+    "leadPhone",
+    "leadCompany",
+    "leadMessage",
+    "lastUserMessage",
+    "messageCount",
+  ];
+
+  const rows = sessionSnapshots.map((session) => [
+    session.sessionId,
+    session.startedAt,
+    session.lastSeenAt,
+    session.metadata?.ip,
+    session.metadata?.pageUrl,
+    session.metadata?.pageTitle,
+    session.metadata?.deviceType,
+    session.metadata?.browser,
+    session.metadata?.os,
+    session.interestSummary?.buying_stage,
+    session.interestSummary?.lead_temperature,
+    session.interestSummary?.sentiment,
+    session.interestSummary?.interest_category,
+    session.interestSummary?.interest_summary,
+    session.interestSummary?.recommended_follow_up,
+    (session.interestSummary?.topics || []).join(" | "),
+    session.latestLead?.name,
+    session.latestLead?.email,
+    session.latestLead?.phone,
+    session.latestLead?.company,
+    session.latestLead?.message,
+    session.lastUserMessage,
+    session.rawMessageCount,
+  ]);
+
+  return [headers, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
+}
+
 // Chat endpoint
 app.post("/api/chat", async (req, res) => {
   const { message, sessionId } = req.body;
@@ -350,6 +432,10 @@ app.post("/api/lead", async (req, res) => {
     persistSessionSnapshot(analyticsStore, sessionId, session, metadata);
   }
 
+  const sessionSummary = sessions.has(sessionId)
+    ? sessions.get(sessionId).analytics?.interestSummary || null
+    : null;
+
   // Save lead to file (use a database in production)
   const leadsPath = path.join(DATA_DIR, "leads.json");
   let leads = [];
@@ -393,6 +479,12 @@ app.post("/api/lead", async (req, res) => {
             <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Phone</td><td style="padding:8px;border-bottom:1px solid #eee;">${phone ? `<a href="tel:${phone}">${phone}</a>` : "Not provided"}</td></tr>
             <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Company</td><td style="padding:8px;border-bottom:1px solid #eee;">${company || "Not provided"}</td></tr>
             <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Message</td><td style="padding:8px;border-bottom:1px solid #eee;">${message || "Not provided"}</td></tr>
+            <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Page</td><td style="padding:8px;border-bottom:1px solid #eee;">${metadata.pageUrl || "Unknown"}</td></tr>
+            <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Interest</td><td style="padding:8px;border-bottom:1px solid #eee;">${sessionSummary?.interest_summary || "Not available yet"}</td></tr>
+            <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Buying Stage</td><td style="padding:8px;border-bottom:1px solid #eee;">${sessionSummary?.buying_stage || "unknown"}</td></tr>
+            <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Lead Temperature</td><td style="padding:8px;border-bottom:1px solid #eee;">${sessionSummary?.lead_temperature || "unknown"}</td></tr>
+            <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Recommended Follow-Up</td><td style="padding:8px;border-bottom:1px solid #eee;">${sessionSummary?.recommended_follow_up || "Review conversation"}</td></tr>
+            <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Topics</td><td style="padding:8px;border-bottom:1px solid #eee;">${(sessionSummary?.topics || []).join(", ") || "None"}</td></tr>
             <tr><td style="padding:8px;font-weight:bold;">Time</td><td style="padding:8px;">${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}</td></tr>
           </table>
           <p style="color:#888;font-size:12px;margin-top:16px;">Sent by PTSG AI Chatbot</p>
@@ -407,12 +499,19 @@ app.post("/api/lead", async (req, res) => {
   res.json({ success: true, message: "Thank you! Our team will reach out shortly." });
 });
 
-app.get("/api/admin/analytics", (req, res) => {
+app.get("/api/admin/analytics", requireAdmin, (req, res) => {
   const sessionSnapshots = readJson(analyticsStore.sessionPath, []);
   res.json(summarizeSessions(sessionSnapshots));
 });
 
-app.get("/api/admin/analytics/:sessionId", (req, res) => {
+app.get("/api/admin/analytics/export.csv", requireAdmin, (req, res) => {
+  const sessionSnapshots = readJson(analyticsStore.sessionPath, []);
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", 'attachment; filename="ptsg-chat-analytics.csv"');
+  res.send(buildAnalyticsCsv(sessionSnapshots));
+});
+
+app.get("/api/admin/analytics/:sessionId", requireAdmin, (req, res) => {
   const sessionSnapshots = readJson(analyticsStore.sessionPath, []);
   const session = sessionSnapshots.find((entry) => entry.sessionId === req.params.sessionId);
   if (!session) {
