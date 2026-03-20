@@ -120,8 +120,8 @@
       right: 24px;
       width: 380px;
       max-width: calc(100vw - 48px);
-      height: 580px;
-      max-height: calc(100vh - 96px);
+      height: 620px;
+      max-height: calc(100vh - 72px);
       background: var(--ptsg-bg);
       border-radius: 16px;
       box-shadow: 0 8px 40px rgba(0, 0, 0, 0.15);
@@ -555,7 +555,7 @@
       </div>
       <div id="ptsg-chat-input-area">
         <div class="ptsg-input-stack">
-          <textarea id="ptsg-chat-input" rows="1" placeholder="Ask about SCADA, PLCs, upgrades, or support..."></textarea>
+          <textarea id="ptsg-chat-input" rows="1" placeholder="Ask about SCADA or support..."></textarea>
           <div class="ptsg-footer-actions">
             <a class="ptsg-sales-link" href="tel:${SALES_PHONE}">Call Sales ${SALES_PHONE_LABEL}</a>
           </div>
