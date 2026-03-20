@@ -1,5 +1,7 @@
 node_modules
 .env
 data/leads.json
+data/chat_logs.jsonl
+data/chat_sessions.json
 data/pages.json
 .DS_Store
