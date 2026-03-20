@@ -449,10 +449,12 @@
   `;
   document.body.appendChild(widget);
 
-  // Greeting bubble — shows after 3 seconds
+  // Greeting bubble — shows after a short delay and can retry on first scroll
   let greetingEl = null;
+  let greetingDismissed = false;
+  let greetingScheduled = false;
   function showGreeting() {
-    if (sessionStorage.getItem("ptsg_greet_dismissed") || isOpen) return;
+    if (greetingDismissed || greetingEl || isOpen) return;
     greetingEl = document.createElement("div");
     greetingEl.id = "ptsg-greeting";
     greetingEl.innerHTML = '<button class="close-greet">&times;</button>Hi there! Need help with automation, SCADA, or a quote? I\'m here to help!';
@@ -469,9 +471,17 @@
   }
   function dismissGreeting() {
     if (greetingEl) { greetingEl.remove(); greetingEl = null; }
-    sessionStorage.setItem("ptsg_greet_dismissed", "true");
+    greetingDismissed = true;
   }
-  setTimeout(showGreeting, 3000);
+
+  function scheduleGreeting(delay = 2500) {
+    if (greetingScheduled || greetingDismissed || isOpen) return;
+    greetingScheduled = true;
+    window.setTimeout(() => {
+      greetingScheduled = false;
+      showGreeting();
+    }, delay);
+  }
 
   // Elements
   const toggle = document.getElementById("ptsg-chat-toggle");
@@ -490,6 +500,11 @@
   let isLoading = false;
   let messageCount = 0;
   let chatHistory = []; // client-side history for serverless backend
+
+  scheduleGreeting();
+  window.addEventListener("load", () => scheduleGreeting(1200), { once: true });
+  window.addEventListener("pageshow", () => scheduleGreeting(900), { once: true });
+  window.addEventListener("scroll", () => scheduleGreeting(300), { passive: true, once: true });
 
   function toggleChat() {
     isOpen = !isOpen;

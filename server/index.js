@@ -18,7 +18,7 @@ const {
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "andrew";
 
 app.use(cors());
 app.use(express.json());
