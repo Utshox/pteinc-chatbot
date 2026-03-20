@@ -6,6 +6,13 @@ const fs = require("fs");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { Resend } = require("resend");
 const { tokenize, tfidfVector, cosineSimilarity, STOPWORDS } = require("../scraper/embed");
+const {
+  createAnalyticsStore,
+  getClientMetadata,
+  logChatEvent,
+  persistSessionSnapshot,
+  summarizeInterest,
+} = require("./analytics");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -16,6 +23,7 @@ app.use(express.static(path.join(__dirname, "..", "public")));
 
 // Load knowledge base
 const DATA_DIR = path.join(__dirname, "..", "data");
+const analyticsStore = createAnalyticsStore(DATA_DIR);
 let chunks, index;
 
 try {
@@ -120,9 +128,48 @@ function searchKnowledgeBase(query, topK = 5) {
   }));
 }
 
+function createSessionState(metadata) {
+  return {
+    messages: [],
+    leadInfo: null,
+    analytics: {
+      startedAt: new Date().toISOString(),
+      metadata,
+      rawMessages: [],
+      topSourceTitles: [],
+      interestSummary: null,
+      latestLead: null,
+    },
+  };
+}
+
+function recordRawMessage(session, role, text) {
+  session.analytics.rawMessages.push({
+    role,
+    text,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+function queueInterestSummary(sessionId, session, metadata) {
+  summarizeInterest({
+    apiKey: process.env.GEMINI_API_KEY,
+    sessionState: session,
+  })
+    .then((summary) => {
+      if (!summary) return;
+      session.analytics.interestSummary = summary;
+      persistSessionSnapshot(analyticsStore, sessionId, session, metadata);
+    })
+    .catch((err) => {
+      console.error("Interest summary error:", err.message);
+    });
+}
+
 // Chat endpoint
 app.post("/api/chat", async (req, res) => {
   const { message, sessionId } = req.body;
+  const metadata = getClientMetadata(req);
 
   if (!message || typeof message !== "string") {
     return res.status(400).json({ error: "Message is required" });
@@ -130,9 +177,10 @@ app.post("/api/chat", async (req, res) => {
 
   // Get or create session
   if (!sessions.has(sessionId)) {
-    sessions.set(sessionId, { messages: [], leadInfo: null });
+    sessions.set(sessionId, createSessionState(metadata));
   }
   const session = sessions.get(sessionId);
+  session.analytics.metadata = { ...session.analytics.metadata, ...metadata };
 
   // Search knowledge base for relevant context
   const results = searchKnowledgeBase(message);
@@ -146,6 +194,21 @@ app.post("/api/chat", async (req, res) => {
   const userMessage = `Context from PTSG knowledge base:\n${context}\n\n---\nUser question: ${message}`;
 
   session.messages.push({ role: "user", parts: [{ text: userMessage }] });
+  recordRawMessage(session, "user", message);
+  session.analytics.topSourceTitles = results.map((r) => r.title);
+  logChatEvent(analyticsStore, {
+    type: "chat_user_message",
+    timestamp: new Date().toISOString(),
+    sessionId,
+    message,
+    metadata,
+    matchedSources: results.map((r) => ({
+      title: r.title,
+      url: r.url,
+      score: Number(r.score.toFixed(4)),
+    })),
+  });
+  persistSessionSnapshot(analyticsStore, sessionId, session, metadata);
 
   // Keep conversation history manageable (last 10 exchanges)
   const recentMessages = session.messages.slice(-20);
@@ -163,13 +226,31 @@ app.post("/api/chat", async (req, res) => {
       || "Hmm, that's a bit outside my wheelhouse! I'm here to help with industrial automation, SCADA, control systems, and related topics. What can I help you with?";
 
     session.messages.push({ role: "model", parts: [{ text: assistantMessage }] });
+    recordRawMessage(session, "assistant", assistantMessage);
+    logChatEvent(analyticsStore, {
+      type: "chat_assistant_message",
+      timestamp: new Date().toISOString(),
+      sessionId,
+      reply: assistantMessage,
+      metadata,
+    });
+    persistSessionSnapshot(analyticsStore, sessionId, session, metadata);
 
     res.json({
       reply: assistantMessage,
       sources: results.map((r) => ({ title: r.title, url: r.url })),
     });
+    queueInterestSummary(sessionId, session, metadata);
   } catch (err) {
     console.error("Gemini API error:", err.message, err.stack);
+    logChatEvent(analyticsStore, {
+      type: "chat_error",
+      timestamp: new Date().toISOString(),
+      sessionId,
+      message,
+      metadata,
+      error: err.message,
+    });
     res.status(500).json({
       reply:
         "I'm having trouble connecting right now. Please call us at +1 (330) 773-9828 or email marketing@pteinc.com for immediate assistance.",
@@ -181,6 +262,7 @@ app.post("/api/chat", async (req, res) => {
 // Lead capture endpoint
 app.post("/api/lead", async (req, res) => {
   const { name, email, phone, company, message, sessionId } = req.body;
+  const metadata = getClientMetadata(req);
 
   if (!email) {
     return res.status(400).json({ error: "Email is required" });
@@ -199,6 +281,19 @@ app.post("/api/lead", async (req, res) => {
       : [],
   };
 
+  if (sessions.has(sessionId)) {
+    const session = sessions.get(sessionId);
+    session.analytics.latestLead = {
+      name: name || null,
+      email,
+      phone: phone || null,
+      company: company || null,
+      message: message || null,
+      capturedAt: lead.timestamp,
+    };
+    persistSessionSnapshot(analyticsStore, sessionId, session, metadata);
+  }
+
   // Save lead to file (use a database in production)
   const leadsPath = path.join(DATA_DIR, "leads.json");
   let leads = [];
@@ -209,6 +304,19 @@ app.post("/api/lead", async (req, res) => {
   fs.writeFileSync(leadsPath, JSON.stringify(leads, null, 2));
 
   console.log(`New lead captured: ${email}`);
+  logChatEvent(analyticsStore, {
+    type: "lead_submitted",
+    timestamp: lead.timestamp,
+    sessionId,
+    metadata,
+    lead: {
+      name: name || null,
+      email,
+      phone: phone || null,
+      company: company || null,
+      message: message || null,
+    },
+  });
 
   // Email the lead to the team
   const resendKey = process.env.RESEND_API_KEY;
@@ -245,7 +353,11 @@ app.post("/api/lead", async (req, res) => {
 
 // Health check
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", chunks: chunks.length });
+  res.json({
+    status: "ok",
+    chunks: chunks.length,
+    logDir: analyticsStore.logDir,
+  });
 });
 
 app.listen(PORT, "0.0.0.0", () => {

@@ -148,10 +148,12 @@
       margin: 0;
       font-size: 15px;
       font-weight: 600;
+      color: white;
     }
     #ptsg-chat-header .info p {
       margin: 2px 0 0;
       font-size: 12px;
+      color: white;
       opacity: 0.85;
     }
     .ptsg-header-actions {
