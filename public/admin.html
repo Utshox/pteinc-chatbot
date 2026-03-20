@@ -200,6 +200,33 @@
       outline: none;
     }
 
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr 160px 160px 140px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .control,
+    .button {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font: inherit;
+      color: var(--ink);
+    }
+
+    .button {
+      cursor: pointer;
+      background: linear-gradient(180deg, #fff8f2 0%, #fff 100%);
+      font-weight: 700;
+    }
+
+    .button:hover {
+      border-color: rgba(182, 61, 45, 0.35);
+    }
+
     .search:focus {
       border-color: rgba(182, 61, 45, 0.35);
       box-shadow: 0 0 0 4px rgba(182, 61, 45, 0.08);
@@ -452,7 +479,8 @@
       .detail-grid,
       .info-grid,
       .overview-grid,
-      .signal-row {
+      .signal-row,
+      .toolbar {
         grid-template-columns: 1fr;
       }
 
@@ -518,7 +546,24 @@
           <h2>Visitors</h2>
           <div class="loading" id="refresh-status">Loading...</div>
         </div>
-        <input id="search" class="search" type="search" placeholder="Filter by topic, IP, message, company, stage..." />
+        <div class="toolbar">
+          <input id="search" class="search" type="search" placeholder="Filter by topic, IP, message, company, stage..." />
+          <select id="stage-filter" class="control">
+            <option value="">All stages</option>
+            <option value="quote-ready">Quote ready</option>
+            <option value="research">Research</option>
+            <option value="support">Support</option>
+            <option value="awareness">Awareness</option>
+            <option value="unknown">Unknown</option>
+          </select>
+          <select id="temperature-filter" class="control">
+            <option value="">All temperatures</option>
+            <option value="hot">Hot</option>
+            <option value="warm">Warm</option>
+            <option value="cold">Cold</option>
+          </select>
+          <button id="export-btn" class="button" type="button">Export CSV</button>
+        </div>
         <div class="tag-row" id="topic-summary"></div>
         <div class="tag-row" id="stage-summary"></div>
         <div class="session-list" id="session-list"></div>
@@ -548,6 +593,9 @@
       sessionList: document.getElementById("session-list"),
       detailRoot: document.getElementById("detail-root"),
       search: document.getElementById("search"),
+      stageFilter: document.getElementById("stage-filter"),
+      temperatureFilter: document.getElementById("temperature-filter"),
+      exportBtn: document.getElementById("export-btn"),
       refreshStatus: document.getElementById("refresh-status"),
       detailStatus: document.getElementById("detail-status"),
       metricSessions: document.getElementById("metric-sessions"),
@@ -558,6 +606,19 @@
       topicSummary: document.getElementById("topic-summary"),
       stageSummary: document.getElementById("stage-summary"),
     };
+
+    const adminToken = new URLSearchParams(window.location.search).get("token") || localStorage.getItem("ptsg_admin_token") || "";
+    if (adminToken) {
+      localStorage.setItem("ptsg_admin_token", adminToken);
+    }
+
+    function apiUrl(path) {
+      const url = new URL(path, window.location.origin);
+      if (adminToken) {
+        url.searchParams.set("token", adminToken);
+      }
+      return url.toString();
+    }
 
     function escapeHtml(value) {
       return String(value ?? "")
@@ -599,6 +660,8 @@
         session.latestLead?.name,
         session.latestLead?.email,
         session.latestLead?.company,
+        session.metadata?.pageUrl,
+        session.metadata?.pageTitle,
       ].filter(Boolean).join(" ").toLowerCase();
     }
 
@@ -701,6 +764,8 @@
               <div><span class="label">Last Seen</span><div class="value">${escapeHtml(formatTime(session.lastSeenAt))}</div></div>
               <div><span class="label">Referer</span><div class="value">${escapeHtml(metadata.referer || "Direct / unavailable")}</div></div>
               <div><span class="label">Origin</span><div class="value">${escapeHtml(metadata.origin || "Unknown")}</div></div>
+              <div><span class="label">Page Title</span><div class="value">${escapeHtml(metadata.pageTitle || "Unknown")}</div></div>
+              <div><span class="label">Page URL</span><div class="value">${metadata.pageUrl ? `<a href="${escapeHtml(metadata.pageUrl)}" target="_blank" rel="noopener">${escapeHtml(metadata.pageUrl)}</a>` : "Unknown"}</div></div>
             </div>
           </div>
 
@@ -783,9 +848,14 @@
 
     function applyFilter() {
       const query = els.search.value.trim().toLowerCase();
-      state.filtered = query
-        ? state.sessions.filter((session) => sessionSearchText(session).includes(query))
-        : state.sessions.slice();
+      const stage = els.stageFilter.value;
+      const temperature = els.temperatureFilter.value;
+      state.filtered = state.sessions.filter((session) => {
+        if (query && !sessionSearchText(session).includes(query)) return false;
+        if (stage && (session.interestSummary?.buying_stage || "unknown") !== stage) return false;
+        if (temperature && (session.interestSummary?.lead_temperature || "cold") !== temperature) return false;
+        return true;
+      });
 
       renderSessionList();
 
@@ -807,7 +877,12 @@
       els.detailStatus.textContent = "Loading session...";
 
       if (!state.detailCache.has(sessionId)) {
-        const response = await fetch(`/api/admin/analytics/${encodeURIComponent(sessionId)}`);
+        const response = await fetch(apiUrl(`/api/admin/analytics/${encodeURIComponent(sessionId)}`));
+        if (response.status === 401) {
+          els.detailRoot.innerHTML = '<div class="empty">Unauthorized. Reload this page with `?token=YOUR_ADMIN_TOKEN`.</div>';
+          els.detailStatus.textContent = "Unauthorized";
+          return;
+        }
         if (!response.ok) {
           els.detailRoot.innerHTML = '<div class="empty">Failed to load the selected session.</div>';
           els.detailStatus.textContent = "Load failed";
@@ -822,7 +897,12 @@
 
     async function loadDashboard() {
       els.refreshStatus.textContent = "Loading...";
-      const response = await fetch("/api/admin/analytics");
+      const response = await fetch(apiUrl("/api/admin/analytics"));
+      if (response.status === 401) {
+        els.refreshStatus.textContent = "Unauthorized";
+        els.detailRoot.innerHTML = '<div class="empty">Set `ADMIN_TOKEN` in Railway, then open this page with `?token=YOUR_ADMIN_TOKEN`.</div>';
+        return;
+      }
       const data = await response.json();
       state.sessions = data.sessions || [];
       state.filtered = state.sessions.slice();
@@ -840,6 +920,11 @@
     }
 
     els.search.addEventListener("input", applyFilter);
+    els.stageFilter.addEventListener("change", applyFilter);
+    els.temperatureFilter.addEventListener("change", applyFilter);
+    els.exportBtn.addEventListener("click", () => {
+      window.location.href = apiUrl("/api/admin/analytics/export.csv");
+    });
     loadDashboard().catch((error) => {
       console.error(error);
       els.refreshStatus.textContent = "Failed to load";

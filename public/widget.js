@@ -5,6 +5,10 @@
 (function () {
   const CHAT_API = window.PTSG_CHAT_API || window.location.origin;
   const SESSION_KEY = "ptsg_chat_session";
+  const pageContext = {
+    pageUrl: window.location.href,
+    pageTitle: document.title,
+  };
 
   function getSessionId() {
     let id = sessionStorage.getItem(SESSION_KEY);
@@ -604,7 +608,7 @@
       const res = await fetch(CHAT_API + "/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, sessionId, history: chatHistory }),
+        body: JSON.stringify({ message: text, sessionId, history: chatHistory, ...pageContext }),
       });
       const data = await res.json();
       hideTyping();
@@ -679,7 +683,7 @@
       const res = await fetch(CHAT_API + "/api/lead", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(lead),
+        body: JSON.stringify({ ...lead, ...pageContext }),
       });
       const data = await res.json();
       hideLeadForm();

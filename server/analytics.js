@@ -79,6 +79,8 @@ function detectOS(userAgent = "") {
 
 function getClientMetadata(req) {
   const userAgent = req.headers["user-agent"] || "";
+  const pageUrl = req.body?.pageUrl || req.query?.pageUrl || null;
+  const pageTitle = req.body?.pageTitle || req.query?.pageTitle || null;
   return {
     ip: extractIp(req),
     userAgent,
@@ -88,6 +90,8 @@ function getClientMetadata(req) {
     deviceType: detectDeviceType(userAgent),
     browser: detectBrowser(userAgent),
     os: detectOS(userAgent),
+    pageUrl,
+    pageTitle,
   };
 }
 
@@ -148,6 +152,8 @@ function buildSessionSnapshot(sessionId, sessionState, metadata) {
       language: metadata?.language || sessionState.analytics?.metadata?.language || null,
       referer: metadata?.referer || sessionState.analytics?.metadata?.referer || null,
       origin: metadata?.origin || sessionState.analytics?.metadata?.origin || null,
+      pageUrl: metadata?.pageUrl || sessionState.analytics?.metadata?.pageUrl || null,
+      pageTitle: metadata?.pageTitle || sessionState.analytics?.metadata?.pageTitle || null,
       userAgent: metadata?.userAgent || sessionState.analytics?.metadata?.userAgent || "",
     },
     latestLead,
