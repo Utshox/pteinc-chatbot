@@ -150,6 +150,15 @@ function searchKnowledgeBase(query, topK = 5) {
   }));
 }
 
+function selectDisplaySources(results, maxSources = 2) {
+  const seen = new Set();
+  return results.filter((result) => {
+    if (seen.has(result.url)) return false;
+    seen.add(result.url);
+    return true;
+  }).slice(0, maxSources);
+}
+
 function createSessionState(metadata) {
   return {
     messages: [],
@@ -322,6 +331,7 @@ app.post("/api/chat", async (req, res) => {
 
   // Search knowledge base for relevant context
   const results = searchKnowledgeBase(message);
+  const displaySources = selectDisplaySources(results);
   const context = results.length
     ? results
         .map((r) => `[Source: ${r.title} (${r.url})]\n${r.content}`)
@@ -376,7 +386,7 @@ app.post("/api/chat", async (req, res) => {
 
     res.json({
       reply: assistantMessage,
-      sources: results.map((r) => ({ title: r.title, url: r.url })),
+      sources: displaySources.map((r) => ({ title: r.title, url: r.url })),
     });
     queueInterestSummary(sessionId, session, metadata);
   } catch (err) {

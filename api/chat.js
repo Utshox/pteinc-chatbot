@@ -85,6 +85,15 @@ function searchKnowledgeBase(query, topK = 5) {
   }));
 }
 
+function selectDisplaySources(results, maxSources = 2) {
+  const seen = new Set();
+  return results.filter((result) => {
+    if (seen.has(result.url)) return false;
+    seen.add(result.url);
+    return true;
+  }).slice(0, maxSources);
+}
+
 module.exports = async function handler(req, res) {
   // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -101,6 +110,7 @@ module.exports = async function handler(req, res) {
 
   // Search knowledge base
   const results = searchKnowledgeBase(message);
+  const displaySources = selectDisplaySources(results);
   const context = results.length
     ? results.map((r) => `[Source: ${r.title} (${r.url})]\n${r.content}`).join("\n\n---\n\n")
     : "No specific information found in the knowledge base for this query.";
@@ -129,7 +139,7 @@ module.exports = async function handler(req, res) {
 
     res.json({
       reply,
-      sources: results.map((r) => ({ title: r.title, url: r.url })),
+      sources: displaySources.map((r) => ({ title: r.title, url: r.url })),
     });
   } catch (err) {
     console.error("Gemini API error:", err.message);
