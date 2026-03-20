@@ -125,6 +125,9 @@
       overflow: hidden;
       overscroll-behavior: contain;
       z-index: 99999;
+      border: 1px solid rgba(163, 39, 27, 0.12);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,247,243,0.98) 100%);
     }
     #ptsg-chat-window.open { display: flex; }
 
@@ -207,16 +210,18 @@
       word-wrap: break-word;
     }
     .ptsg-msg.bot {
-      background: var(--ptsg-light);
+      background: linear-gradient(180deg, #fffaf4 0%, #f8f1ea 100%);
       color: var(--ptsg-text);
       align-self: flex-start;
       border-bottom-left-radius: 4px;
+      border: 1px solid rgba(163, 39, 27, 0.08);
     }
     .ptsg-msg.user {
-      background: var(--ptsg-primary);
+      background: linear-gradient(135deg, #d84a35 0%, #b73223 100%);
       color: white;
       align-self: flex-end;
       border-bottom-right-radius: 4px;
+      box-shadow: 0 10px 24px rgba(183, 50, 35, 0.2);
     }
     .ptsg-msg.bot a {
       color: var(--ptsg-primary);
@@ -235,99 +240,143 @@
 
     .ptsg-typing {
       display: flex;
-      gap: 4px;
-      padding: 10px 14px;
-      background: var(--ptsg-light);
-      border-radius: 12px;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px 14px;
+      background: linear-gradient(180deg, #fffaf4 0%, #f8f1ea 100%);
+      border: 1px solid rgba(163, 39, 27, 0.08);
+      border-radius: 14px;
       border-bottom-left-radius: 4px;
       align-self: flex-start;
-      max-width: 60px;
+      max-width: 240px;
     }
-    .ptsg-typing span {
+    .ptsg-typing-label {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #9a7763;
+      font-weight: 700;
+    }
+    .ptsg-typing-keyword {
+      min-height: 20px;
+      font-size: 13px;
+      color: #6f5a4a;
+      font-weight: 600;
+    }
+    .ptsg-typing-bars {
+      display: flex;
+      gap: 6px;
+      align-items: flex-end;
+      height: 20px;
+    }
+    .ptsg-typing-bars span {
       width: 8px;
-      height: 8px;
-      background: #aaa;
-      border-radius: 50%;
-      animation: ptsg-bounce 1.2s infinite;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #d95741 0%, #b73223 100%);
+      animation: ptsg-bars 1.1s infinite ease-in-out;
+      transform-origin: bottom;
     }
-    .ptsg-typing span:nth-child(2) { animation-delay: 0.2s; }
-    .ptsg-typing span:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes ptsg-bounce {
-      0%, 60%, 100% { transform: translateY(0); }
-      30% { transform: translateY(-6px); }
+    .ptsg-typing-bars span:nth-child(1) { height: 8px; }
+    .ptsg-typing-bars span:nth-child(2) { height: 14px; animation-delay: 0.12s; }
+    .ptsg-typing-bars span:nth-child(3) { height: 20px; animation-delay: 0.24s; }
+    .ptsg-typing-bars span:nth-child(4) { height: 12px; animation-delay: 0.36s; }
+    @keyframes ptsg-bars {
+      0%, 100% { transform: scaleY(0.55); opacity: 0.55; }
+      50% { transform: scaleY(1); opacity: 1; }
     }
 
     #ptsg-chat-input-area {
-      padding: 12px 16px;
+      padding: 12px 16px 16px;
       border-top: 1px solid var(--ptsg-border);
       display: flex;
       gap: 8px;
       flex-shrink: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(248,241,234,0.92) 100%);
     }
     #ptsg-chat-input {
       flex: 1;
-      border: 1px solid var(--ptsg-border);
-      border-radius: 24px;
-      padding: 10px 16px;
+      border: 1px solid rgba(163, 39, 27, 0.14);
+      border-radius: 16px;
+      padding: 14px 16px;
       font-size: 14px;
       outline: none;
       font-family: inherit;
+      background: rgba(255,255,255,0.96);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
     }
-    #ptsg-chat-input:focus { border-color: var(--ptsg-primary); }
+    #ptsg-chat-input:focus {
+      border-color: var(--ptsg-primary);
+      box-shadow: 0 0 0 4px rgba(229, 60, 46, 0.08);
+    }
     #ptsg-chat-send {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: var(--ptsg-primary);
+      min-width: 94px;
+      height: 48px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #d84a35 0%, #b73223 100%);
       border: none;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: 8px;
       flex-shrink: 0;
+      padding: 0 16px;
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      box-shadow: 0 14px 24px rgba(183, 50, 35, 0.24);
     }
-    #ptsg-chat-send:hover { background: var(--ptsg-primary-dark); }
+    #ptsg-chat-send:hover { background: linear-gradient(135deg, #cf412d 0%, #a62b1d 100%); }
     #ptsg-chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
     #ptsg-chat-send svg { width: 18px; height: 18px; fill: white; }
+    #ptsg-chat-send .label { color: white; font-size: 14px; }
 
     .ptsg-quick-actions {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 8px;
       padding: 0 16px 12px;
     }
     .ptsg-quick-btn {
-      background: white;
-      border: 1px solid var(--ptsg-border);
-      border-radius: 16px;
-      padding: 6px 12px;
+      background: rgba(255,255,255,0.96);
+      border: 1px solid rgba(163, 39, 27, 0.12);
+      border-radius: 999px;
+      padding: 9px 14px;
       font-size: 12px;
       cursor: pointer;
-      color: var(--ptsg-primary);
-      transition: background 0.15s;
+      color: #8f2d20;
+      transition: background 0.15s, transform 0.15s, border-color 0.15s;
+      min-height: 38px;
+      font-weight: 600;
     }
     .ptsg-quick-btn:hover {
-      background: var(--ptsg-light);
+      background: #fff7f1;
+      transform: translateY(-1px);
+      border-color: rgba(163, 39, 27, 0.24);
     }
 
     .ptsg-contact-btn {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-      background: none;
-      border: 1px solid var(--ptsg-primary);
-      border-radius: 14px;
-      padding: 5px 12px;
-      font-size: 11px;
+      gap: 7px;
+      background: linear-gradient(135deg, #fff6ef 0%, #fff 100%);
+      border: 1px solid rgba(183, 50, 35, 0.22);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 12px;
       cursor: pointer;
       color: var(--ptsg-primary);
       margin-top: 10px;
       margin-bottom: 2px;
-      transition: background 0.15s, color 0.15s;
+      transition: background 0.15s, color 0.15s, transform 0.15s;
+      min-height: 42px;
+      font-weight: 700;
     }
     .ptsg-contact-btn:hover {
-      background: var(--ptsg-light);
+      background: #fff1e6;
       color: #333;
+      transform: translateY(-1px);
     }
     .ptsg-contact-btn svg {
       width: 12px;
@@ -398,6 +447,10 @@
         right: 0;
         border-radius: 0;
       }
+      #ptsg-chat-send {
+        min-width: 84px;
+        padding: 0 14px;
+      }
     }
   `;
   document.head.appendChild(style);
@@ -439,6 +492,7 @@
       <div id="ptsg-chat-input-area">
         <input type="text" id="ptsg-chat-input" placeholder="Ask about our automation services..." />
         <button id="ptsg-chat-send">
+          <span class="label">Send</span>
           <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
         </button>
       </div>
@@ -495,6 +549,15 @@
   const leadSubmit = document.getElementById("ptsg-lead-submit");
   const leadCancel = document.getElementById("ptsg-lead-cancel");
   const restartBtn = document.getElementById("ptsg-chat-restart");
+  const typingKeywords = [
+    "Checking SCADA tags...",
+    "Reviewing PLC logic...",
+    "Scanning field notes...",
+    "Calling the control room...",
+    "Looking at panel details..."
+  ];
+  let typingKeywordTimer = null;
+  let typingKeywordIndex = 0;
 
   let isOpen = false;
   let isLoading = false;
@@ -530,7 +593,20 @@
     addBotMessage(
       "Hi! I'm the PTSG AI assistant. I can help you learn about our industrial automation services, SCADA solutions, IIoT, and more. How can I help you today?"
     );
+    scrollMessagesToBottom();
   });
+
+  function scrollMessagesToBottom() {
+    window.requestAnimationFrame(() => {
+      messages.scrollTop = messages.scrollHeight;
+      window.setTimeout(() => {
+        messages.scrollTop = messages.scrollHeight;
+      }, 30);
+      window.setTimeout(() => {
+        messages.scrollTop = messages.scrollHeight;
+      }, 180);
+    });
+  }
 
   function addBotMessage(text, sources = []) {
     const div = document.createElement("div");
@@ -582,7 +658,7 @@
     }
 
     messages.appendChild(div);
-    messages.scrollTop = messages.scrollHeight;
+    scrollMessagesToBottom();
     messageCount++;
   }
 
@@ -591,7 +667,7 @@
     div.className = "ptsg-msg user";
     div.textContent = text;
     messages.appendChild(div);
-    messages.scrollTop = messages.scrollHeight;
+    scrollMessagesToBottom();
     messageCount++;
   }
 
@@ -599,14 +675,30 @@
     const div = document.createElement("div");
     div.className = "ptsg-typing";
     div.id = "ptsg-typing";
-    div.innerHTML = "<span></span><span></span><span></span>";
+    div.innerHTML = `
+      <div class="ptsg-typing-label">PTSG Signal Check</div>
+      <div class="ptsg-typing-keyword">${typingKeywords[0]}</div>
+      <div class="ptsg-typing-bars"><span></span><span></span><span></span><span></span></div>
+    `;
     messages.appendChild(div);
-    messages.scrollTop = messages.scrollHeight;
+    typingKeywordIndex = 0;
+    typingKeywordTimer = window.setInterval(() => {
+      const keywordEl = div.querySelector(".ptsg-typing-keyword");
+      if (!keywordEl) return;
+      typingKeywordIndex = (typingKeywordIndex + 1) % typingKeywords.length;
+      keywordEl.textContent = typingKeywords[typingKeywordIndex];
+      scrollMessagesToBottom();
+    }, 1100);
+    scrollMessagesToBottom();
   }
 
   function hideTyping() {
     const el = document.getElementById("ptsg-typing");
     if (el) el.remove();
+    if (typingKeywordTimer) {
+      window.clearInterval(typingKeywordTimer);
+      typingKeywordTimer = null;
+    }
   }
 
   async function sendMessage(text) {
@@ -655,12 +747,12 @@
 
   function showLeadPromptButton() {
     const btn = document.createElement("button");
-    btn.className = "ptsg-quick-btn";
+    btn.className = "ptsg-contact-btn";
     btn.textContent = "Share my contact info with PTSG";
-    btn.style.margin = "0 16px 8px";
+    btn.style.margin = "0 16px 12px";
     btn.addEventListener("click", showLeadForm);
     messages.appendChild(btn);
-    messages.scrollTop = messages.scrollHeight;
+    scrollMessagesToBottom();
   }
 
   function showLeadForm() {
@@ -674,6 +766,7 @@
     leadForm.classList.remove("show");
     messages.style.display = "flex";
     document.getElementById("ptsg-chat-input-area").style.display = "flex";
+    scrollMessagesToBottom();
   }
 
   leadCancel.addEventListener("click", hideLeadForm);
