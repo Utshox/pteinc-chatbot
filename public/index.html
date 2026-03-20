@@ -65,6 +65,18 @@
       font-size: 14px;
       animation: bounce 2s infinite;
     }
+    .admin-link {
+      display: inline-block;
+      margin-top: 18px;
+      color: #b63d2d;
+      font-weight: 600;
+      text-decoration: none;
+      border-bottom: 2px solid rgba(182, 61, 45, 0.18);
+      padding-bottom: 4px;
+    }
+    .admin-link:hover {
+      border-color: #b63d2d;
+    }
     @keyframes bounce {
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(5px); }
@@ -106,6 +118,8 @@
     <div class="arrow-hint">
       Click the chat bubble in the bottom-right corner to start
     </div>
+
+    <a class="admin-link" href="/admin.html">Open Chat Analytics Dashboard</a>
   </div>
 
   <!-- The chatbot widget -->
