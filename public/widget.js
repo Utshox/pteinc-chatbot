@@ -5,6 +5,9 @@
 (function () {
   const CHAT_API = window.PTSG_CHAT_API || window.location.origin;
   const SESSION_KEY = "ptsg_chat_session";
+  const SALES_PHONE = "+13307739828";
+  const SALES_PHONE_LABEL = "(330) 773-9828";
+  const BRAND_LOGO = "https://www.pteinc.com/wp-content/uploads/2021/03/Protechlogo.png";
   const pageContext = {
     pageUrl: window.location.href,
     pageTitle: document.title,
@@ -141,15 +144,23 @@
       flex-shrink: 0;
     }
     #ptsg-chat-header .avatar {
-      width: 36px;
-      height: 36px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      background: rgba(255,255,255,0.16);
+      border-radius: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
+      padding: 6px;
       flex-shrink: 0;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);
+    }
+    #ptsg-chat-header .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      filter: brightness(0) invert(1);
     }
     #ptsg-chat-header .info h3 {
       margin: 0;
@@ -208,6 +219,12 @@
       font-size: 14px;
       line-height: 1.5;
       word-wrap: break-word;
+      animation: ptsg-message-in 0.24s ease-out;
+      transform-origin: bottom;
+    }
+    @keyframes ptsg-message-in {
+      from { opacity: 0; transform: translateY(8px) scale(0.985); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
     .ptsg-msg.bot {
       background: linear-gradient(180deg, #fffaf4 0%, #f8f1ea 100%);
@@ -289,20 +306,32 @@
       padding: 12px 16px 16px;
       border-top: 1px solid var(--ptsg-border);
       display: flex;
-      gap: 8px;
+      gap: 10px;
       flex-shrink: 0;
       background: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(248,241,234,0.92) 100%);
+      align-items: flex-end;
+    }
+    .ptsg-input-stack {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
     #ptsg-chat-input {
       flex: 1;
       border: 1px solid rgba(163, 39, 27, 0.14);
       border-radius: 16px;
-      padding: 14px 16px;
+      padding: 12px 16px;
       font-size: 14px;
       outline: none;
       font-family: inherit;
       background: rgba(255,255,255,0.96);
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+      resize: none;
+      min-height: 48px;
+      max-height: 112px;
+      line-height: 1.5;
+      overflow-y: auto;
     }
     #ptsg-chat-input:focus {
       border-color: var(--ptsg-primary);
@@ -331,6 +360,31 @@
     #ptsg-chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
     #ptsg-chat-send svg { width: 18px; height: 18px; fill: white; }
     #ptsg-chat-send .label { color: white; font-size: 14px; }
+    .ptsg-footer-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .ptsg-sales-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 36px;
+      border-radius: 999px;
+      padding: 8px 12px;
+      text-decoration: none;
+      background: rgba(255,255,255,0.94);
+      border: 1px solid rgba(163, 39, 27, 0.12);
+      color: #8f2d20;
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: 0 10px 18px rgba(101, 55, 32, 0.06);
+    }
+    .ptsg-sales-link:hover {
+      background: #fff7f1;
+      border-color: rgba(163, 39, 27, 0.24);
+    }
 
     .ptsg-quick-actions {
       display: flex;
@@ -451,6 +505,9 @@
         min-width: 84px;
         padding: 0 14px;
       }
+      .ptsg-footer-actions {
+        justify-content: space-between;
+      }
     }
   `;
   document.head.appendChild(style);
@@ -461,7 +518,7 @@
   widget.innerHTML = `
     <div id="ptsg-chat-window">
       <div id="ptsg-chat-header">
-        <div class="avatar">P</div>
+        <div class="avatar"><img src="${BRAND_LOGO}" alt="PTSG" /></div>
         <div class="info">
           <h3>PTSG Assistant</h3>
           <p>Industrial Automation Expert</p>
@@ -490,7 +547,12 @@
         <button id="ptsg-lead-cancel">Back to chat</button>
       </div>
       <div id="ptsg-chat-input-area">
-        <input type="text" id="ptsg-chat-input" placeholder="Ask about our automation services..." />
+        <div class="ptsg-input-stack">
+          <textarea id="ptsg-chat-input" rows="1" placeholder="Ask about our automation services..."></textarea>
+          <div class="ptsg-footer-actions">
+            <a class="ptsg-sales-link" href="tel:${SALES_PHONE}">Call Sales ${SALES_PHONE_LABEL}</a>
+          </div>
+        </div>
         <button id="ptsg-chat-send">
           <span class="label">Send</span>
           <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
@@ -564,10 +626,61 @@
   let messageCount = 0;
   let chatHistory = []; // client-side history for serverless backend
 
+  function getQuickPrompts() {
+    const pageText = `${pageContext.pageTitle} ${pageContext.pageUrl}`.toLowerCase();
+    if (pageText.includes("water") || pageText.includes("wastewater")) {
+      return [
+        { label: "SCADA Upgrade", question: "We need to upgrade our water plant SCADA system" },
+        { label: "Remote Monitoring", question: "Can you help with remote monitoring for our water system?" },
+        { label: "Pump Station Quote", question: "Can you provide me a quote for a pump station panel?" },
+        { label: "24/7 Support", question: "Do you offer 24/7 emergency support for municipal systems?" },
+      ];
+    }
+    if (pageText.includes("scada")) {
+      return [
+        { label: "Platform Support", question: "Can you support our existing SCADA platform and third-party equipment?" },
+        { label: "Cybersecurity", question: "Do you handle cybersecurity improvements for SCADA systems?" },
+        { label: "Upgrade Scope", question: "What information do you need to scope a SCADA upgrade?" },
+        { label: "Ignition Help", question: "Can you help us move to a new platform like Ignition or VTScada?" },
+      ];
+    }
+    if (pageText.includes("service") || pageText.includes("field")) {
+      return [
+        { label: "Emergency Support", question: "Do you offer 24/7 emergency field support?" },
+        { label: "Remote Support", question: "Can you do remote monitoring and support for our existing system?" },
+        { label: "PLC Troubleshooting", question: "Can you diagnose an alarm issue with my PLC?" },
+        { label: "Call Sales", question: "How quickly can someone from your team get back to us?" },
+      ];
+    }
+    return [
+      { label: "Get a Quote", question: "Can you provide me a quote for a pump station panel?" },
+      { label: "Pricing Info", question: "How much does a bulk water fill station cost?" },
+      { label: "PLC Troubleshooting", question: "Can you diagnose an alarm issue with my PLC?" },
+      { label: "SCADA Upgrade", question: "We need to upgrade our water plant SCADA system" },
+    ];
+  }
+
+  function renderQuickActions() {
+    const prompts = getQuickPrompts();
+    quickActions.innerHTML = prompts
+      .map((prompt) => `<button class="ptsg-quick-btn" data-q="${prompt.question.replace(/"/g, "&quot;")}">${prompt.label}</button>`)
+      .join("");
+    quickActions.querySelectorAll(".ptsg-quick-btn").forEach((btn) => {
+      btn.addEventListener("click", () => sendMessage(btn.dataset.q));
+    });
+  }
+
+  function autoResizeInput() {
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 112) + "px";
+  }
+
   scheduleGreeting();
   window.addEventListener("load", () => scheduleGreeting(1200), { once: true });
   window.addEventListener("pageshow", () => scheduleGreeting(900), { once: true });
   window.addEventListener("scroll", () => scheduleGreeting(300), { passive: true, once: true });
+  renderQuickActions();
+  autoResizeInput();
 
   function toggleChat() {
     isOpen = !isOpen;
@@ -594,6 +707,7 @@
       "Hi! I'm the PTSG AI assistant. I can help you learn about our industrial automation services, SCADA solutions, IIoT, and more. How can I help you today?"
     );
     scrollMessagesToBottom();
+    autoResizeInput();
   });
 
   function scrollMessagesToBottom() {
@@ -706,6 +820,7 @@
 
     addUserMessage(text);
     input.value = "";
+    autoResizeInput();
     quickActions.style.display = "none";
     isLoading = true;
     sendBtn.disabled = true;
@@ -743,6 +858,7 @@
     isLoading = false;
     sendBtn.disabled = false;
     input.focus();
+    autoResizeInput();
   }
 
   function showLeadPromptButton() {
@@ -807,10 +923,6 @@
   });
 
   // Quick action buttons
-  quickActions.querySelectorAll(".ptsg-quick-btn").forEach((btn) => {
-    btn.addEventListener("click", () => sendMessage(btn.dataset.q));
-  });
-
   // Send on enter
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -818,6 +930,7 @@
       sendMessage(input.value);
     }
   });
+  input.addEventListener("input", autoResizeInput);
 
   sendBtn.addEventListener("click", () => sendMessage(input.value));
 })();
