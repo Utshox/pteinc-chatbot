@@ -119,8 +119,8 @@
       right: 24px;
       width: 380px;
       max-width: calc(100vw - 48px);
-      height: 520px;
-      max-height: calc(100vh - 120px);
+      height: 580px;
+      max-height: calc(100vh - 96px);
       background: var(--ptsg-bg);
       border-radius: 16px;
       box-shadow: 0 8px 40px rgba(0, 0, 0, 0.15);
