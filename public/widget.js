@@ -789,6 +789,13 @@
     });
   }
 
+  function focusMessageStart(element) {
+    if (!element) return;
+    window.requestAnimationFrame(() => {
+      element.scrollIntoView({ block: "start", inline: "nearest" });
+    });
+  }
+
   function addBotMessage(text, sources = [], options = {}) {
     const { persist = true } = options;
     const div = document.createElement("div");
@@ -840,7 +847,7 @@
     }
 
     messages.appendChild(div);
-    scrollMessagesToBottom();
+    focusMessageStart(div);
     messageCount++;
     if (persist) {
       renderedMessages.push({ role: "assistant", content: text, sources });
@@ -854,7 +861,7 @@
     div.className = "ptsg-msg user";
     div.textContent = text;
     messages.appendChild(div);
-    scrollMessagesToBottom();
+    focusMessageStart(div);
     messageCount++;
     if (persist) {
       renderedMessages.push({ role: "user", content: text });
@@ -880,7 +887,7 @@
       keywordEl.textContent = typingKeywords[typingKeywordIndex];
       scrollMessagesToBottom();
     }, 1100);
-    scrollMessagesToBottom();
+    focusMessageStart(div);
   }
 
   function hideTyping() {
