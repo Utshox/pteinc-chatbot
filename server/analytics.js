@@ -27,6 +27,20 @@ function readJson(filePath, fallback) {
   }
 }
 
+function readJsonLines(filePath) {
+  try {
+    if (!fs.existsSync(filePath)) return [];
+    return fs
+      .readFileSync(filePath, "utf-8")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => JSON.parse(line));
+  } catch {
+    return [];
+  }
+}
+
 function extractIp(req) {
   const forwarded = req.headers["x-forwarded-for"];
   if (typeof forwarded === "string" && forwarded.trim()) {
@@ -187,5 +201,7 @@ module.exports = {
   getSessionRecord,
   logChatEvent,
   persistSessionSnapshot,
+  readJson,
+  readJsonLines,
   summarizeInterest,
 };

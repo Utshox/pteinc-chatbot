@@ -11,6 +11,8 @@ const {
   getClientMetadata,
   logChatEvent,
   persistSessionSnapshot,
+  readJson,
+  readJsonLines,
   summarizeInterest,
 } = require("./analytics");
 
@@ -164,6 +166,39 @@ function queueInterestSummary(sessionId, session, metadata) {
     .catch((err) => {
       console.error("Interest summary error:", err.message);
     });
+}
+
+function summarizeSessions(sessionSnapshots) {
+  const sessions = sessionSnapshots.slice().sort((a, b) => new Date(b.lastSeenAt) - new Date(a.lastSeenAt));
+  const totalSessions = sessions.length;
+  const totalMessages = sessions.reduce((sum, session) => sum + (session.rawMessageCount || 0), 0);
+  const leads = sessions.filter((session) => session.latestLead).length;
+  const stages = sessions.reduce((acc, session) => {
+    const stage = session.interestSummary?.buying_stage || "unknown";
+    acc[stage] = (acc[stage] || 0) + 1;
+    return acc;
+  }, {});
+  const topicCounts = {};
+  for (const session of sessions) {
+    for (const topic of session.interestSummary?.topics || []) {
+      topicCounts[topic] = (topicCounts[topic] || 0) + 1;
+    }
+  }
+
+  return {
+    overview: {
+      totalSessions,
+      totalMessages,
+      leads,
+      leadRate: totalSessions ? Number(((leads / totalSessions) * 100).toFixed(1)) : 0,
+      buyingStages: stages,
+      topTopics: Object.entries(topicCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+        .map(([topic, count]) => ({ topic, count })),
+    },
+    sessions,
+  };
 }
 
 // Chat endpoint
@@ -349,6 +384,25 @@ app.post("/api/lead", async (req, res) => {
   }
 
   res.json({ success: true, message: "Thank you! Our team will reach out shortly." });
+});
+
+app.get("/api/admin/analytics", (req, res) => {
+  const sessionSnapshots = readJson(analyticsStore.sessionPath, []);
+  res.json(summarizeSessions(sessionSnapshots));
+});
+
+app.get("/api/admin/analytics/:sessionId", (req, res) => {
+  const sessionSnapshots = readJson(analyticsStore.sessionPath, []);
+  const session = sessionSnapshots.find((entry) => entry.sessionId === req.params.sessionId);
+  if (!session) {
+    return res.status(404).json({ error: "Session not found" });
+  }
+
+  const events = readJsonLines(analyticsStore.chatLogPath)
+    .filter((entry) => entry.sessionId === req.params.sessionId)
+    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+  res.json({ session, events });
 });
 
 // Health check
