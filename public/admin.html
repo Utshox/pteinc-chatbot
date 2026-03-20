@@ -201,10 +201,23 @@
     }
 
     .toolbar {
-      display: grid;
-      grid-template-columns: 1fr 160px 160px 140px;
+      display: flex;
+      flex-wrap: wrap;
       gap: 10px;
       align-items: center;
+    }
+
+    .toolbar > * {
+      min-width: 0;
+    }
+
+    .toolbar .search {
+      flex: 1 1 100%;
+    }
+
+    .toolbar .control,
+    .toolbar .button {
+      flex: 1 1 140px;
     }
 
     .control,
@@ -498,7 +511,6 @@
           <img src="https://www.pteinc.com/wp-content/uploads/2021/03/Protechlogo.png" alt="Pro-Tech Systems Group logo" />
           <div>
             <div class="eyebrow">Internal Analytics</div>
-            <div class="pill">SCADA + Controls + Field Services</div>
           </div>
         </div>
         <h1>Chatbot Visitor Intelligence</h1>
@@ -507,7 +519,7 @@
         </p>
         <div class="hero-meta">
           <div class="pill">Open-architecture lead review</div>
-          <div class="pill">Gemini interest summaries</div>
+          <div class="pill">Interest summaries</div>
           <div class="pill">Lead details + conversation trail</div>
         </div>
       </div>
