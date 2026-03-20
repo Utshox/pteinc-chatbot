@@ -621,7 +621,7 @@
 
     let adminToken = new URLSearchParams(window.location.search).get("token") || localStorage.getItem("ptsg_admin_token") || "";
     if (!adminToken) {
-      const entered = window.prompt("Enter admin password", "andrew");
+      const entered = window.prompt("Enter admin password", "");
       if (entered) {
         adminToken = entered.trim();
       }
