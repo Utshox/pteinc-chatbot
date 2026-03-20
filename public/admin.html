@@ -619,7 +619,13 @@
       stageSummary: document.getElementById("stage-summary"),
     };
 
-    const adminToken = new URLSearchParams(window.location.search).get("token") || localStorage.getItem("ptsg_admin_token") || "";
+    let adminToken = new URLSearchParams(window.location.search).get("token") || localStorage.getItem("ptsg_admin_token") || "";
+    if (!adminToken) {
+      const entered = window.prompt("Enter admin password", "andrew");
+      if (entered) {
+        adminToken = entered.trim();
+      }
+    }
     if (adminToken) {
       localStorage.setItem("ptsg_admin_token", adminToken);
     }
