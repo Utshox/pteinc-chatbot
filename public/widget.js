@@ -5,6 +5,7 @@
 (function () {
   const CHAT_API = window.PTSG_CHAT_API || window.location.origin;
   const SESSION_KEY = "ptsg_chat_session";
+  const CHAT_STATE_KEY = "ptsg_chat_state";
   const SALES_PHONE = "+13307739828";
   const SALES_PHONE_LABEL = "(330) 773-9828";
   const BRAND_LOGO = "https://www.pteinc.com/wp-content/uploads/2021/03/Protechlogo.png";
@@ -318,6 +319,8 @@
       gap: 8px;
     }
     #ptsg-chat-input {
+      width: 100%;
+      display: block;
       flex: 1;
       border: 1px solid rgba(163, 39, 27, 0.14);
       border-radius: 16px;
@@ -332,6 +335,10 @@
       max-height: 112px;
       line-height: 1.5;
       overflow-y: auto;
+    }
+    #ptsg-chat-input::placeholder {
+      color: #9a7763;
+      font-size: 13px;
     }
     #ptsg-chat-input:focus {
       border-color: var(--ptsg-primary);
@@ -548,7 +555,7 @@
       </div>
       <div id="ptsg-chat-input-area">
         <div class="ptsg-input-stack">
-          <textarea id="ptsg-chat-input" rows="1" placeholder="Ask about our automation services..."></textarea>
+          <textarea id="ptsg-chat-input" rows="1" placeholder="Ask about SCADA, PLCs, upgrades, or support..."></textarea>
           <div class="ptsg-footer-actions">
             <a class="ptsg-sales-link" href="tel:${SALES_PHONE}">Call Sales ${SALES_PHONE_LABEL}</a>
           </div>
@@ -625,6 +632,7 @@
   let isLoading = false;
   let messageCount = 0;
   let chatHistory = []; // client-side history for serverless backend
+  let renderedMessages = [];
 
   function getQuickPrompts() {
     const pageText = `${pageContext.pageTitle} ${pageContext.pageUrl}`.toLowerCase();
@@ -675,12 +683,68 @@
     input.style.height = Math.min(input.scrollHeight, 112) + "px";
   }
 
+  function saveWidgetState() {
+    sessionStorage.setItem(
+      CHAT_STATE_KEY,
+      JSON.stringify({
+        chatHistory,
+        renderedMessages,
+        messageCount,
+        isOpen,
+        quickActionsHidden: quickActions.style.display === "none",
+      })
+    );
+  }
+
+  function clearWidgetState() {
+    sessionStorage.removeItem(CHAT_STATE_KEY);
+  }
+
+  function loadWidgetState() {
+    try {
+      return JSON.parse(sessionStorage.getItem(CHAT_STATE_KEY) || "null");
+    } catch {
+      return null;
+    }
+  }
+
+  function restoreWidgetState() {
+    const state = loadWidgetState();
+    if (!state) return;
+
+    chatHistory = Array.isArray(state.chatHistory) ? state.chatHistory : [];
+    renderedMessages = Array.isArray(state.renderedMessages) ? state.renderedMessages : [];
+    messageCount = 0;
+    messages.innerHTML = "";
+
+    renderedMessages.forEach((entry) => {
+      if (entry.role === "assistant") {
+        addBotMessage(entry.content, entry.sources || [], { persist: false });
+      } else {
+        addUserMessage(entry.content, { persist: false });
+      }
+    });
+
+    if (state.quickActionsHidden || renderedMessages.length) {
+      quickActions.style.display = "none";
+    }
+
+    if (state.isOpen) {
+      isOpen = true;
+      chatWindow.classList.add("open");
+      dismissGreeting();
+    }
+
+    scrollMessagesToBottom();
+  }
+
   scheduleGreeting();
   window.addEventListener("load", () => scheduleGreeting(1200), { once: true });
   window.addEventListener("pageshow", () => scheduleGreeting(900), { once: true });
   window.addEventListener("scroll", () => scheduleGreeting(300), { passive: true, once: true });
   renderQuickActions();
   autoResizeInput();
+  restoreWidgetState();
 
   function toggleChat() {
     isOpen = !isOpen;
@@ -692,6 +756,7 @@
       );
     }
     if (isOpen) input.focus();
+    saveWidgetState();
   }
 
   toggle.addEventListener("click", toggleChat);
@@ -700,6 +765,7 @@
   restartBtn.addEventListener("click", () => {
     messages.innerHTML = "";
     chatHistory = [];
+    renderedMessages = [];
     messageCount = 0;
     quickActions.style.display = "flex";
     sessionStorage.removeItem("ptsg_lead_prompted");
@@ -708,6 +774,7 @@
     );
     scrollMessagesToBottom();
     autoResizeInput();
+    clearWidgetState();
   });
 
   function scrollMessagesToBottom() {
@@ -722,7 +789,8 @@
     });
   }
 
-  function addBotMessage(text, sources = []) {
+  function addBotMessage(text, sources = [], options = {}) {
+    const { persist = true } = options;
     const div = document.createElement("div");
     div.className = "ptsg-msg bot";
 
@@ -774,15 +842,24 @@
     messages.appendChild(div);
     scrollMessagesToBottom();
     messageCount++;
+    if (persist) {
+      renderedMessages.push({ role: "assistant", content: text, sources });
+      saveWidgetState();
+    }
   }
 
-  function addUserMessage(text) {
+  function addUserMessage(text, options = {}) {
+    const { persist = true } = options;
     const div = document.createElement("div");
     div.className = "ptsg-msg user";
     div.textContent = text;
     messages.appendChild(div);
     scrollMessagesToBottom();
     messageCount++;
+    if (persist) {
+      renderedMessages.push({ role: "user", content: text });
+      saveWidgetState();
+    }
   }
 
   function showTyping() {
@@ -859,6 +936,7 @@
     sendBtn.disabled = false;
     input.focus();
     autoResizeInput();
+    saveWidgetState();
   }
 
   function showLeadPromptButton() {
@@ -876,6 +954,7 @@
     messages.style.display = "none";
     quickActions.style.display = "none";
     document.getElementById("ptsg-chat-input-area").style.display = "none";
+    saveWidgetState();
   }
 
   function hideLeadForm() {
@@ -883,6 +962,7 @@
     messages.style.display = "flex";
     document.getElementById("ptsg-chat-input-area").style.display = "flex";
     scrollMessagesToBottom();
+    saveWidgetState();
   }
 
   leadCancel.addEventListener("click", hideLeadForm);
