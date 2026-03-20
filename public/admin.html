@@ -463,6 +463,13 @@
       line-height: 1.6;
     }
 
+    .matched-sources {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
     .empty {
       padding: 40px 24px;
       text-align: center;
@@ -809,9 +816,9 @@
               : '<span class="tag">No topics extracted</span>'}
           </div>
           <div class="event-line">
-            Top matched content:
+            <div>Top matched content:</div>
             ${(session.topSourceTitles || []).length
-              ? session.topSourceTitles.map((title) => `<span class="tag">${escapeHtml(title)}</span>`).join(" ")
+              ? `<div class="matched-sources">${session.topSourceTitles.map((title) => `<span class="tag">${escapeHtml(title)}</span>`).join("")}</div>`
               : "No source matches recorded."}
           </div>
         </section>
