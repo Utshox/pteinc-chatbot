@@ -16,13 +16,15 @@ A production-ready AI chatbot for [Pro-Tech Systems Group (PTSG)](https://pteinc
 - **Smart handling** of quotes, pricing, PLC troubleshooting, and project inquiries
 - **Lead capture form** — collects visitor info with email notification via Resend
 - **Conversational memory** — maintains context across messages (client-side history)
+- **Same-tab page persistence** — conversation stays visible when a visitor moves between pages in the same tab
 - **Clickable contacts** — phone numbers (`tel:`) and emails (`mailto:`) are tappable
 - **Start Over button** — reset conversation anytime
 - **Greeting bubble** — pops up after 3s to engage visitors
 - **Quick action buttons** — Get a Quote, Pricing Info, PLC Troubleshooting, SCADA Upgrade
-- **Source citations** — shows which pages the answer came from
+- **Source citations** — shows the top 1-2 most relevant pages
 - **Mobile responsive** — full-screen on phones, floating widget on desktop
 - **Scroll isolation** — mouse wheel stays trapped inside the widget
+- **Analytics dashboard** — protected internal view of visitors, leads, interests, and follow-up suggestions
 
 ---
 
@@ -68,6 +70,8 @@ The chatbot is deployed on Railway at `pteinc-chatbot-production.up.railway.app`
 | `GEMINI_API_KEY` | Google Gemini API key |
 | `RESEND_API_KEY` | Resend.com API key for lead email notifications |
 | `LEAD_NOTIFY_EMAIL` | Email address to receive lead notifications |
+| `CHAT_LOG_DIR` | Persistent mounted path for chat logs and session snapshots, e.g. `/data` |
+| `ADMIN_TOKEN` | Password/token for the analytics dashboard |
 
 ### WordPress Embed
 
@@ -75,8 +79,20 @@ Added to pteinc.com via WPCode plugin (Site Wide Footer):
 
 ```html
 <script>window.PTSG_CHAT_API = "https://pteinc-chatbot-production.up.railway.app";</script>
-<script src="https://pteinc-chatbot-production.up.railway.app/widget.js"></script>
+<script src="https://pteinc-chatbot-production.up.railway.app/widget.js?v=20260321c"></script>
 ```
+
+If WordPress or a CDN serves an older version after deploy, bump the `?v=` value and purge caches.
+
+### Persistent Chat Data
+
+For Railway, mount a volume at `/data` and set:
+
+```bash
+CHAT_LOG_DIR=/data
+```
+
+This keeps chat/session analytics across deploys instead of losing them with container rebuilds.
 
 ---
 

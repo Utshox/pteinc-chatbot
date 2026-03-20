@@ -633,6 +633,7 @@
   let messageCount = 0;
   let chatHistory = []; // client-side history for serverless backend
   let renderedMessages = [];
+  let currentExchangeAnchor = null;
 
   function getQuickPrompts() {
     const pageText = `${pageContext.pageTitle} ${pageContext.pageUrl}`.toLowerCase();
@@ -766,6 +767,7 @@
     messages.innerHTML = "";
     chatHistory = [];
     renderedMessages = [];
+    currentExchangeAnchor = null;
     messageCount = 0;
     quickActions.style.display = "flex";
     sessionStorage.removeItem("ptsg_lead_prompted");
@@ -794,6 +796,12 @@
     window.requestAnimationFrame(() => {
       element.scrollIntoView({ block: "start", inline: "nearest" });
     });
+  }
+
+  function focusCurrentExchange() {
+    if (currentExchangeAnchor) {
+      focusMessageStart(currentExchangeAnchor);
+    }
   }
 
   function addBotMessage(text, sources = [], options = {}) {
@@ -847,7 +855,7 @@
     }
 
     messages.appendChild(div);
-    focusMessageStart(div);
+    focusCurrentExchange();
     messageCount++;
     if (persist) {
       renderedMessages.push({ role: "assistant", content: text, sources });
@@ -861,6 +869,7 @@
     div.className = "ptsg-msg user";
     div.textContent = text;
     messages.appendChild(div);
+    currentExchangeAnchor = div;
     focusMessageStart(div);
     messageCount++;
     if (persist) {
@@ -885,9 +894,9 @@
       if (!keywordEl) return;
       typingKeywordIndex = (typingKeywordIndex + 1) % typingKeywords.length;
       keywordEl.textContent = typingKeywords[typingKeywordIndex];
-      scrollMessagesToBottom();
+      focusCurrentExchange();
     }, 1100);
-    focusMessageStart(div);
+    focusCurrentExchange();
   }
 
   function hideTyping() {
