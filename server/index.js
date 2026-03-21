@@ -313,6 +313,11 @@ function buildAnalyticsCsv(sessionSnapshots) {
   return [headers, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
 }
 
+function rewriteJsonLines(filePath, entries) {
+  const body = entries.length ? `${entries.map((entry) => JSON.stringify(entry)).join("\n")}\n` : "";
+  fs.writeFileSync(filePath, body);
+}
+
 // Chat endpoint
 app.post("/api/chat", async (req, res) => {
   const { message, sessionId } = req.body;
@@ -533,6 +538,37 @@ app.get("/api/admin/analytics/:sessionId", requireAdmin, (req, res) => {
     .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
   res.json({ session, events });
+});
+
+app.delete("/api/admin/analytics/:sessionId/lead", requireAdmin, (req, res) => {
+  const sessionSnapshots = readJson(analyticsStore.sessionPath, []);
+  const sessionIndex = sessionSnapshots.findIndex((entry) => entry.sessionId === req.params.sessionId);
+  if (sessionIndex === -1) {
+    return res.status(404).json({ error: "Session not found" });
+  }
+
+  sessionSnapshots[sessionIndex] = {
+    ...sessionSnapshots[sessionIndex],
+    latestLead: null,
+  };
+  fs.writeFileSync(analyticsStore.sessionPath, JSON.stringify(sessionSnapshots, null, 2));
+
+  const logEntries = readJsonLines(analyticsStore.chatLogPath).filter((entry) => {
+    return !(entry.sessionId === req.params.sessionId && entry.type === "lead_submitted");
+  });
+  rewriteJsonLines(analyticsStore.chatLogPath, logEntries);
+
+  const leadsPath = path.join(DATA_DIR, "leads.json");
+  const leads = readJson(leadsPath, []).filter((lead) => lead.sessionId !== req.params.sessionId);
+  if (fs.existsSync(leadsPath) || leads.length) {
+    fs.writeFileSync(leadsPath, JSON.stringify(leads, null, 2));
+  }
+
+  if (sessions.has(req.params.sessionId)) {
+    sessions.get(req.params.sessionId).analytics.latestLead = null;
+  }
+
+  res.json({ success: true });
 });
 
 // Health check
