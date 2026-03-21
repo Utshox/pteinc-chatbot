@@ -444,6 +444,29 @@
       height: 12px;
       fill: currentColor;
     }
+    .ptsg-inline-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .ptsg-inline-option {
+      background: rgba(255,255,255,0.98);
+      border: 1px solid rgba(163, 39, 27, 0.18);
+      border-radius: 999px;
+      padding: 8px 12px;
+      min-height: 36px;
+      cursor: pointer;
+      color: #8f2d20;
+      font-size: 12px;
+      font-weight: 700;
+      transition: background 0.15s, transform 0.15s, border-color 0.15s;
+    }
+    .ptsg-inline-option:hover {
+      background: #fff4eb;
+      border-color: rgba(163, 39, 27, 0.28);
+      transform: translateY(-1px);
+    }
 
     /* Lead capture form */
     #ptsg-lead-form {
@@ -804,6 +827,18 @@
     }
   }
 
+  function getInlineChoices(text) {
+    const normalized = text.replace(/\s+/g, " ").trim();
+    const match = normalized.match(/Are you looking to (.+?) or (.+?)\?/i);
+    if (match) {
+      return [match[1], match[2]].map((choice) => ({
+        label: choice.charAt(0).toUpperCase() + choice.slice(1),
+        value: choice.charAt(0).toUpperCase() + choice.slice(1),
+      }));
+    }
+    return [];
+  }
+
   function addBotMessage(text, sources = [], options = {}) {
     const { persist = true } = options;
     const div = document.createElement("div");
@@ -843,6 +878,21 @@
           .map((s) => `<a href="${s.url}" target="_blank" rel="noopener">${s.title}</a>`)
           .join(" | ");
       div.appendChild(srcDiv);
+    }
+
+    const inlineChoices = getInlineChoices(text);
+    if (inlineChoices.length > 0) {
+      const optionWrap = document.createElement("div");
+      optionWrap.className = "ptsg-inline-options";
+      inlineChoices.forEach((choice) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "ptsg-inline-option";
+        button.textContent = choice.label;
+        button.addEventListener("click", () => sendMessage(choice.value));
+        optionWrap.appendChild(button);
+      });
+      div.appendChild(optionWrap);
     }
 
     // Add contact button after every bot reply (skip the welcome message)
