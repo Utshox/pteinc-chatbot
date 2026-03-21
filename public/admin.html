@@ -240,6 +240,17 @@
       border-color: rgba(182, 61, 45, 0.35);
     }
 
+    .button.danger {
+      color: #8d2318;
+      border-color: rgba(141, 35, 24, 0.18);
+      background: linear-gradient(180deg, #fff5f3 0%, #fff 100%);
+    }
+
+    .button.danger:hover {
+      border-color: rgba(141, 35, 24, 0.32);
+      background: #fff1ee;
+    }
+
     .search:focus {
       border-color: rgba(182, 61, 45, 0.35);
       box-shadow: 0 0 0 4px rgba(182, 61, 45, 0.08);
@@ -520,9 +531,9 @@
             <div class="eyebrow">Internal Analytics</div>
           </div>
         </div>
-        <h1>Chatbot Visitor Intelligence</h1>
+        <h1>PTSG Visitor Insights Console</h1>
         <p class="subtitle">
-          Review who is asking what, how serious they sound, which services they care about, and whether they already left contact details. Tuned for Pro-Tech's open-architecture automation, SCADA, IIoT, and service conversations.
+          Monitor live demand signals, review qualified leads, and understand what visitors want from Pro-Tech's automation, SCADA, IIoT, and field-service conversations.
         </p>
         <div class="hero-meta">
           <div class="pill">Open-architecture lead review</div>
@@ -746,6 +757,7 @@
       const lead = session.latestLead;
       const metadata = session.metadata || {};
       const events = detail.events || [];
+      const locationLabel = [metadata.city, metadata.region, metadata.country].filter(Boolean).join(", ") || "Location unavailable";
 
       els.detailRoot.innerHTML = `
         <section class="detail-hero">
@@ -780,11 +792,12 @@
             <h3>Client Detail</h3>
             <div class="info-grid">
               <div><span class="label">IP</span><div class="value"><code>${escapeHtml(metadata.ip || "unknown")}</code></div></div>
+              <div><span class="label">Location</span><div class="value">${escapeHtml(locationLabel)}</div></div>
               <div><span class="label">Session ID</span><div class="value"><code>${escapeHtml(session.sessionId)}</code></div></div>
               <div><span class="label">Device</span><div class="value">${escapeHtml(metadata.deviceType || "Unknown")}</div></div>
               <div><span class="label">Browser</span><div class="value">${escapeHtml(metadata.browser || "Unknown")}</div></div>
               <div><span class="label">OS</span><div class="value">${escapeHtml(metadata.os || "Unknown")}</div></div>
-              <div><span class="label">Language</span><div class="value">${escapeHtml(metadata.language || "Unknown")}</div></div>
+              <div><span class="label">Language</span><div class="value">${escapeHtml(metadata.languageLabel || "Unknown")}</div></div>
               <div><span class="label">Started</span><div class="value">${escapeHtml(formatTime(session.startedAt))}</div></div>
               <div><span class="label">Last Seen</span><div class="value">${escapeHtml(formatTime(session.lastSeenAt))}</div></div>
               <div><span class="label">Referer</span><div class="value">${escapeHtml(metadata.referer || "Direct / unavailable")}</div></div>
@@ -805,6 +818,7 @@
               <div><span class="label">Sentiment</span><div class="value">${escapeHtml(summary.sentiment || "unknown")}</div></div>
               <div style="grid-column: 1 / -1;"><span class="label">Lead Message</span><div class="value">${escapeHtml(lead?.message || "No lead form message submitted.")}</div></div>
             </div>
+            ${lead ? '<div style="margin-top:12px;"><button id="delete-lead-btn" class="button danger" type="button">Delete Lead</button></div>' : ""}
           </div>
         </section>
 
@@ -869,6 +883,24 @@
           </div>
         </section>
       `;
+
+      const deleteButton = document.getElementById("delete-lead-btn");
+      if (deleteButton) {
+        deleteButton.addEventListener("click", async () => {
+          const confirmed = window.confirm("Delete this lead from the dashboard?");
+          if (!confirmed) return;
+          const response = await fetch(apiUrl(`/api/admin/analytics/${encodeURIComponent(session.sessionId)}/lead`), {
+            method: "DELETE",
+          });
+          if (!response.ok) {
+            window.alert("Failed to delete the lead.");
+            return;
+          }
+          state.detailCache.delete(session.sessionId);
+          await loadDashboard();
+          state.selectedId = session.sessionId;
+        });
+      }
     }
 
     function applyFilter() {

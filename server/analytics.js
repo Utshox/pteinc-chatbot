@@ -77,21 +77,56 @@ function detectOS(userAgent = "") {
   return "Unknown";
 }
 
+function normalizeLanguage(languageHeader = "") {
+  const primary = languageHeader.split(",")[0]?.split(";")[0]?.trim();
+  if (!primary) return null;
+  try {
+    const display = new Intl.DisplayNames(["en"], { type: "language" });
+    const language = primary.split("-")[0];
+    const label = display.of(language);
+    if (!label) return primary;
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  } catch {
+    return primary;
+  }
+}
+
+function extractLocation(req) {
+  const city = req.headers["x-vercel-ip-city"] || req.headers["cf-ipcity"] || req.headers["x-city"] || null;
+  const region =
+    req.headers["x-vercel-ip-country-region"] ||
+    req.headers["x-region"] ||
+    req.headers["cf-region"] ||
+    null;
+  const country = req.headers["x-vercel-ip-country"] || req.headers["cf-ipcountry"] || req.headers["x-country"] || null;
+  return {
+    city: typeof city === "string" && city.trim() ? city.trim() : null,
+    region: typeof region === "string" && region.trim() ? region.trim() : null,
+    country: typeof country === "string" && country.trim() ? country.trim() : null,
+  };
+}
+
 function getClientMetadata(req) {
   const userAgent = req.headers["user-agent"] || "";
   const pageUrl = req.body?.pageUrl || req.query?.pageUrl || null;
   const pageTitle = req.body?.pageTitle || req.query?.pageTitle || null;
+  const location = extractLocation(req);
+  const language = req.headers["accept-language"] || null;
   return {
     ip: extractIp(req),
     userAgent,
     referer: req.headers.referer || null,
     origin: req.headers.origin || null,
-    language: req.headers["accept-language"] || null,
+    language,
+    languageLabel: normalizeLanguage(language || ""),
     deviceType: detectDeviceType(userAgent),
     browser: detectBrowser(userAgent),
     os: detectOS(userAgent),
     pageUrl,
     pageTitle,
+    city: location.city,
+    region: location.region,
+    country: location.country,
   };
 }
 
@@ -150,10 +185,14 @@ function buildSessionSnapshot(sessionId, sessionState, metadata) {
       browser: metadata?.browser || sessionState.analytics?.metadata?.browser || "Unknown",
       os: metadata?.os || sessionState.analytics?.metadata?.os || "Unknown",
       language: metadata?.language || sessionState.analytics?.metadata?.language || null,
+      languageLabel: metadata?.languageLabel || sessionState.analytics?.metadata?.languageLabel || null,
       referer: metadata?.referer || sessionState.analytics?.metadata?.referer || null,
       origin: metadata?.origin || sessionState.analytics?.metadata?.origin || null,
       pageUrl: metadata?.pageUrl || sessionState.analytics?.metadata?.pageUrl || null,
       pageTitle: metadata?.pageTitle || sessionState.analytics?.metadata?.pageTitle || null,
+      city: metadata?.city || sessionState.analytics?.metadata?.city || null,
+      region: metadata?.region || sessionState.analytics?.metadata?.region || null,
+      country: metadata?.country || sessionState.analytics?.metadata?.country || null,
       userAgent: metadata?.userAgent || sessionState.analytics?.metadata?.userAgent || "",
     },
     latestLead,
