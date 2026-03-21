@@ -170,6 +170,8 @@ function createSessionState(metadata) {
       topSourceTitles: [],
       interestSummary: null,
       latestLead: null,
+      leadStatus: "open",
+      adminNote: "",
     },
   };
 }
@@ -565,9 +567,58 @@ app.delete("/api/admin/analytics/:sessionId/lead", requireAdmin, (req, res) => {
   }
 
   if (sessions.has(req.params.sessionId)) {
-    sessions.get(req.params.sessionId).analytics.latestLead = null;
+    const liveSession = sessions.get(req.params.sessionId);
+    liveSession.analytics.latestLead = null;
+    liveSession.analytics.leadStatus = "open";
   }
 
+  res.json({ success: true });
+});
+
+app.patch("/api/admin/analytics/:sessionId", requireAdmin, (req, res) => {
+  const { leadStatus, adminNote } = req.body || {};
+  const sessionSnapshots = readJson(analyticsStore.sessionPath, []);
+  const sessionIndex = sessionSnapshots.findIndex((entry) => entry.sessionId === req.params.sessionId);
+  if (sessionIndex === -1) {
+    return res.status(404).json({ error: "Session not found" });
+  }
+
+  const nextSession = {
+    ...sessionSnapshots[sessionIndex],
+    leadStatus: leadStatus ?? sessionSnapshots[sessionIndex].leadStatus ?? "open",
+    adminNote: adminNote ?? sessionSnapshots[sessionIndex].adminNote ?? "",
+  };
+  sessionSnapshots[sessionIndex] = nextSession;
+  fs.writeFileSync(analyticsStore.sessionPath, JSON.stringify(sessionSnapshots, null, 2));
+
+  if (sessions.has(req.params.sessionId)) {
+    const liveSession = sessions.get(req.params.sessionId);
+    liveSession.analytics.leadStatus = nextSession.leadStatus;
+    liveSession.analytics.adminNote = nextSession.adminNote;
+  }
+
+  res.json({ success: true, session: nextSession });
+});
+
+app.delete("/api/admin/analytics/:sessionId", requireAdmin, (req, res) => {
+  const sessionSnapshots = readJson(analyticsStore.sessionPath, []);
+  const remainingSessions = sessionSnapshots.filter((entry) => entry.sessionId !== req.params.sessionId);
+  if (remainingSessions.length === sessionSnapshots.length) {
+    return res.status(404).json({ error: "Session not found" });
+  }
+
+  fs.writeFileSync(analyticsStore.sessionPath, JSON.stringify(remainingSessions, null, 2));
+
+  const logEntries = readJsonLines(analyticsStore.chatLogPath).filter((entry) => entry.sessionId !== req.params.sessionId);
+  rewriteJsonLines(analyticsStore.chatLogPath, logEntries);
+
+  const leadsPath = path.join(DATA_DIR, "leads.json");
+  const leads = readJson(leadsPath, []).filter((lead) => lead.sessionId !== req.params.sessionId);
+  if (fs.existsSync(leadsPath) || leads.length) {
+    fs.writeFileSync(leadsPath, JSON.stringify(leads, null, 2));
+  }
+
+  sessions.delete(req.params.sessionId);
   res.json({ success: true });
 });
 

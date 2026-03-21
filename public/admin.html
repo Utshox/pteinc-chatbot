@@ -251,6 +251,31 @@
       background: #fff1ee;
     }
 
+    .action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .note-box {
+      width: 100%;
+      min-height: 92px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font: inherit;
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+    }
+
+    .note-box:focus {
+      border-color: rgba(182, 61, 45, 0.35);
+      box-shadow: 0 0 0 4px rgba(182, 61, 45, 0.08);
+    }
+
     .search:focus {
       border-color: rgba(182, 61, 45, 0.35);
       box-shadow: 0 0 0 4px rgba(182, 61, 45, 0.08);
@@ -768,6 +793,7 @@
             <span class="tag">${escapeHtml(summary.buying_stage || "unknown")}</span>
             <span class="tag">${escapeHtml(summary.sentiment || "unknown")}</span>
             <span class="tag">${escapeHtml(summary.lead_temperature || "cold")}</span>
+            <span class="tag">${escapeHtml(session.leadStatus || "open")}</span>
             <span class="tag">${escapeHtml(metadata.deviceType || "unknown device")}</span>
             ${lead ? '<span class="tag success">Lead submitted</span>' : ""}
           </div>
@@ -816,9 +842,20 @@
               <div><span class="label">Phone</span><div class="value">${lead?.phone ? `<a href="tel:${escapeHtml(lead.phone)}">${escapeHtml(lead.phone)}</a>` : "Not provided"}</div></div>
               <div><span class="label">Buying Stage</span><div class="value">${escapeHtml(summary.buying_stage || "unknown")}</div></div>
               <div><span class="label">Sentiment</span><div class="value">${escapeHtml(summary.sentiment || "unknown")}</div></div>
+              <div><span class="label">Lead Status</span><div class="value">${escapeHtml(session.leadStatus || "open")}</div></div>
               <div style="grid-column: 1 / -1;"><span class="label">Lead Message</span><div class="value">${escapeHtml(lead?.message || "No lead form message submitted.")}</div></div>
             </div>
-            ${lead ? '<div style="margin-top:12px;"><button id="delete-lead-btn" class="button danger" type="button">Delete Lead</button></div>' : ""}
+            <div style="margin-top:12px;">
+              <span class="label">Internal Note</span>
+              <textarea id="admin-note" class="note-box" placeholder="Add follow-up notes, owner, timeline, or context...">${escapeHtml(session.adminNote || "")}</textarea>
+            </div>
+            <div class="action-row">
+              <button id="save-note-btn" class="button" type="button">Save Note</button>
+              ${lead ? '<button id="mark-contacted-btn" class="button" type="button">Mark Contacted</button>' : ""}
+              ${lead ? '<button id="archive-lead-btn" class="button" type="button">Archive Lead</button>' : ""}
+              ${lead ? '<button id="delete-lead-btn" class="button danger" type="button">Delete Lead</button>' : ""}
+              <button id="delete-session-btn" class="button danger" type="button">Delete Session</button>
+            </div>
           </div>
         </section>
 
@@ -885,6 +922,46 @@
       `;
 
       const deleteButton = document.getElementById("delete-lead-btn");
+      const deleteSessionButton = document.getElementById("delete-session-btn");
+      const archiveLeadButton = document.getElementById("archive-lead-btn");
+      const markContactedButton = document.getElementById("mark-contacted-btn");
+      const saveNoteButton = document.getElementById("save-note-btn");
+      const noteBox = document.getElementById("admin-note");
+
+      async function patchSession(payload) {
+        const response = await fetch(apiUrl(`/api/admin/analytics/${encodeURIComponent(session.sessionId)}`), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+          window.alert("Failed to update the session.");
+          return false;
+        }
+        state.detailCache.delete(session.sessionId);
+        await loadDashboard();
+        await selectSession(session.sessionId, { silentList: true });
+        return true;
+      }
+
+      if (saveNoteButton && noteBox) {
+        saveNoteButton.addEventListener("click", async () => {
+          await patchSession({ adminNote: noteBox.value });
+        });
+      }
+
+      if (archiveLeadButton) {
+        archiveLeadButton.addEventListener("click", async () => {
+          await patchSession({ leadStatus: "archived", adminNote: noteBox?.value || session.adminNote || "" });
+        });
+      }
+
+      if (markContactedButton) {
+        markContactedButton.addEventListener("click", async () => {
+          await patchSession({ leadStatus: "contacted", adminNote: noteBox?.value || session.adminNote || "" });
+        });
+      }
+
       if (deleteButton) {
         deleteButton.addEventListener("click", async () => {
           const confirmed = window.confirm("Delete this lead from the dashboard?");
@@ -899,6 +976,23 @@
           state.detailCache.delete(session.sessionId);
           await loadDashboard();
           state.selectedId = session.sessionId;
+        });
+      }
+
+      if (deleteSessionButton) {
+        deleteSessionButton.addEventListener("click", async () => {
+          const confirmed = window.confirm("Delete this full session and all related events?");
+          if (!confirmed) return;
+          const response = await fetch(apiUrl(`/api/admin/analytics/${encodeURIComponent(session.sessionId)}`), {
+            method: "DELETE",
+          });
+          if (!response.ok) {
+            window.alert("Failed to delete the session.");
+            return;
+          }
+          state.detailCache.delete(session.sessionId);
+          state.selectedId = null;
+          await loadDashboard();
         });
       }
     }
