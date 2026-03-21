@@ -165,6 +165,8 @@ function buildSessionSnapshot(sessionId, sessionState, metadata) {
   const startedAt = sessionState.analytics?.startedAt || new Date().toISOString();
   const summary = sessionState.analytics?.interestSummary || null;
   const latestLead = sessionState.analytics?.latestLead || null;
+  const leadStatus = sessionState.analytics?.leadStatus || "open";
+  const adminNote = sessionState.analytics?.adminNote || "";
   const rawMessages = sessionState.analytics?.rawMessages || [];
   const lastUserMessage = [...rawMessages].reverse().find((entry) => entry.role === "user")?.text || null;
 
@@ -196,6 +198,8 @@ function buildSessionSnapshot(sessionId, sessionState, metadata) {
       userAgent: metadata?.userAgent || sessionState.analytics?.metadata?.userAgent || "",
     },
     latestLead,
+    leadStatus,
+    adminNote,
     recentMessages: rawMessages.slice(-12),
   };
 }
