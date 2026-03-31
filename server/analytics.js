@@ -15,14 +15,26 @@ function appendJsonLine(filePath, payload) {
 }
 
 function writeJson(filePath, payload) {
-  fs.writeFileSync(filePath, JSON.stringify(payload, null, 2));
+  const tmp = filePath + ".tmp";
+  fs.writeFileSync(tmp, JSON.stringify(payload, null, 2));
+  fs.renameSync(tmp, filePath);
 }
 
 function readJson(filePath, fallback) {
   try {
     if (!fs.existsSync(filePath)) return fallback;
-    return JSON.parse(fs.readFileSync(filePath, "utf-8"));
-  } catch {
+    const raw = fs.readFileSync(filePath, "utf-8");
+    if (!raw.trim()) {
+      console.warn(`[analytics] ${filePath} is empty, using fallback`);
+      return fallback;
+    }
+    return JSON.parse(raw);
+  } catch (err) {
+    console.error(`[analytics] Failed to parse ${filePath}:`, err.message);
+    // Preserve the corrupted file for recovery
+    const backupPath = filePath + ".corrupt." + Date.now();
+    try { fs.copyFileSync(filePath, backupPath); } catch {}
+    console.error(`[analytics] Corrupted file backed up to ${backupPath}`);
     return fallback;
   }
 }
@@ -255,4 +267,5 @@ module.exports = {
   readJson,
   readJsonLines,
   summarizeInterest,
+  writeJson,
 };

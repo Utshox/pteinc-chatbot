@@ -14,6 +14,7 @@ const {
   readJson,
   readJsonLines,
   summarizeInterest,
+  writeJson,
 } = require("./analytics");
 
 const app = express();
@@ -553,7 +554,7 @@ app.delete("/api/admin/analytics/:sessionId/lead", requireAdmin, (req, res) => {
     ...sessionSnapshots[sessionIndex],
     latestLead: null,
   };
-  fs.writeFileSync(analyticsStore.sessionPath, JSON.stringify(sessionSnapshots, null, 2));
+  writeJson(analyticsStore.sessionPath, sessionSnapshots);
 
   const logEntries = readJsonLines(analyticsStore.chatLogPath).filter((entry) => {
     return !(entry.sessionId === req.params.sessionId && entry.type === "lead_submitted");
@@ -589,7 +590,7 @@ app.patch("/api/admin/analytics/:sessionId", requireAdmin, (req, res) => {
     adminNote: adminNote ?? sessionSnapshots[sessionIndex].adminNote ?? "",
   };
   sessionSnapshots[sessionIndex] = nextSession;
-  fs.writeFileSync(analyticsStore.sessionPath, JSON.stringify(sessionSnapshots, null, 2));
+  writeJson(analyticsStore.sessionPath, sessionSnapshots);
 
   if (sessions.has(req.params.sessionId)) {
     const liveSession = sessions.get(req.params.sessionId);
@@ -607,7 +608,7 @@ app.delete("/api/admin/analytics/:sessionId", requireAdmin, (req, res) => {
     return res.status(404).json({ error: "Session not found" });
   }
 
-  fs.writeFileSync(analyticsStore.sessionPath, JSON.stringify(remainingSessions, null, 2));
+  writeJson(analyticsStore.sessionPath, remainingSessions);
 
   const logEntries = readJsonLines(analyticsStore.chatLogPath).filter((entry) => entry.sessionId !== req.params.sessionId);
   rewriteJsonLines(analyticsStore.chatLogPath, logEntries);
@@ -624,10 +625,24 @@ app.delete("/api/admin/analytics/:sessionId", requireAdmin, (req, res) => {
 
 // Health check
 app.get("/api/health", (req, res) => {
+  let sessionFileStatus = "missing";
+  let sessionCount = 0;
+  try {
+    if (fs.existsSync(analyticsStore.sessionPath)) {
+      const raw = fs.readFileSync(analyticsStore.sessionPath, "utf-8");
+      const parsed = JSON.parse(raw);
+      sessionFileStatus = "ok";
+      sessionCount = parsed.length;
+    }
+  } catch (err) {
+    sessionFileStatus = "corrupt: " + err.message;
+  }
   res.json({
     status: "ok",
     chunks: chunks.length,
     logDir: analyticsStore.logDir,
+    sessionFile: sessionFileStatus,
+    sessionCount,
   });
 });
 
