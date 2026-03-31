@@ -762,13 +762,16 @@
     scrollMessagesToBottom();
   }
 
-  scheduleGreeting();
-  window.addEventListener("load", () => scheduleGreeting(1200), { once: true });
-  window.addEventListener("pageshow", () => scheduleGreeting(900), { once: true });
-  window.addEventListener("scroll", () => scheduleGreeting(300), { passive: true, once: true });
   renderQuickActions();
   autoResizeInput();
   restoreWidgetState();
+
+  // Auto-open the chat window after a brief delay so visitors notice it
+  if (!isOpen) {
+    window.setTimeout(() => {
+      if (!isOpen) toggleChat();
+    }, 1500);
+  }
 
   function toggleChat() {
     isOpen = !isOpen;
