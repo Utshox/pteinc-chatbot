@@ -8,6 +8,7 @@ const { Resend } = require("resend");
 const { tokenize, tfidfVector, cosineSimilarity, STOPWORDS } = require("../scraper/embed");
 const {
   createAnalyticsStore,
+  geolocateIp,
   getClientMetadata,
   logChatEvent,
   persistSessionSnapshot,
@@ -333,6 +334,13 @@ app.post("/api/chat", async (req, res) => {
   // Get or create session
   if (!sessions.has(sessionId)) {
     sessions.set(sessionId, createSessionState(metadata));
+    // Enrich with IP geolocation on first message (async, non-blocking)
+    geolocateIp(metadata.ip).then((geo) => {
+      if (geo && sessions.has(sessionId)) {
+        const s = sessions.get(sessionId);
+        Object.assign(s.analytics.metadata, geo);
+      }
+    });
   }
   const session = sessions.get(sessionId);
   session.analytics.metadata = { ...session.analytics.metadata, ...metadata };

@@ -118,6 +118,37 @@ function extractLocation(req) {
   };
 }
 
+// IP geolocation via ip-api.com (free, no key, 45 req/min)
+const geoCache = new Map();
+
+async function geolocateIp(ip) {
+  if (!ip || ip === "unknown" || ip === "::1" || ip === "127.0.0.1") return null;
+  if (geoCache.has(ip)) return geoCache.get(ip);
+  try {
+    const res = await fetch(`http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,country,regionName,city,zip,lat,lon,isp,org`);
+    const data = await res.json();
+    if (data.status !== "success") {
+      geoCache.set(ip, null);
+      return null;
+    }
+    const geo = {
+      city: data.city || null,
+      region: data.regionName || null,
+      country: data.country || null,
+      zip: data.zip || null,
+      lat: data.lat || null,
+      lon: data.lon || null,
+      isp: data.isp || null,
+      org: data.org || null,
+    };
+    geoCache.set(ip, geo);
+    return geo;
+  } catch (err) {
+    console.error("[analytics] IP geolocation failed:", err.message);
+    return null;
+  }
+}
+
 function getClientMetadata(req) {
   const userAgent = req.headers["user-agent"] || "";
   const pageUrl = req.body?.pageUrl || req.query?.pageUrl || null;
@@ -207,6 +238,11 @@ function buildSessionSnapshot(sessionId, sessionState, metadata) {
       city: metadata?.city || sessionState.analytics?.metadata?.city || null,
       region: metadata?.region || sessionState.analytics?.metadata?.region || null,
       country: metadata?.country || sessionState.analytics?.metadata?.country || null,
+      zip: metadata?.zip || sessionState.analytics?.metadata?.zip || null,
+      lat: metadata?.lat || sessionState.analytics?.metadata?.lat || null,
+      lon: metadata?.lon || sessionState.analytics?.metadata?.lon || null,
+      isp: metadata?.isp || sessionState.analytics?.metadata?.isp || null,
+      org: metadata?.org || sessionState.analytics?.metadata?.org || null,
       userAgent: metadata?.userAgent || sessionState.analytics?.metadata?.userAgent || "",
     },
     latestLead,
@@ -260,6 +296,7 @@ ${userMessages.map((message, index) => `${index + 1}. ${message}`).join("\n")}
 
 module.exports = {
   createAnalyticsStore,
+  geolocateIp,
   getClientMetadata,
   getSessionRecord,
   logChatEvent,
