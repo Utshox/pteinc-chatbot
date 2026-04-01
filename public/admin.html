@@ -761,9 +761,9 @@
             </div>
             <div class="session-copy">${escapeHtml(summary.interest_summary || session.lastUserMessage || "No message summary yet.")}</div>
             <div class="tag-row">
+              <span class="tag">${escapeHtml([session.metadata?.city, session.metadata?.region, session.metadata?.country].filter(Boolean).join(", ") || session.metadata?.ip || "unknown")}</span>
               <span class="tag">${escapeHtml(summary.buying_stage || "unknown")}</span>
               <span class="tag">${escapeHtml(session.metadata?.deviceType || "device?")}</span>
-              <span class="tag">${escapeHtml(session.metadata?.browser || "browser?")}</span>
               ${summary.lead_temperature ? `<span class="tag">${escapeHtml(summary.lead_temperature)}</span>` : ""}
               ${lead ? '<span class="tag success">Lead captured</span>' : ""}
             </div>
@@ -819,6 +819,10 @@
             <div class="info-grid">
               <div><span class="label">IP</span><div class="value"><code>${escapeHtml(metadata.ip || "unknown")}</code></div></div>
               <div><span class="label">Location</span><div class="value">${escapeHtml(locationLabel)}</div></div>
+              ${metadata.zip ? `<div><span class="label">ZIP Code</span><div class="value">${escapeHtml(metadata.zip)}</div></div>` : ""}
+              ${metadata.isp ? `<div><span class="label">ISP</span><div class="value">${escapeHtml(metadata.isp)}</div></div>` : ""}
+              ${metadata.org ? `<div><span class="label">Organization</span><div class="value">${escapeHtml(metadata.org)}</div></div>` : ""}
+              ${metadata.lat && metadata.lon ? `<div><span class="label">Coordinates</span><div class="value">${metadata.lat}, ${metadata.lon}</div></div>` : ""}
               <div><span class="label">Session ID</span><div class="value"><code>${escapeHtml(session.sessionId)}</code></div></div>
               <div><span class="label">Device</span><div class="value">${escapeHtml(metadata.deviceType || "Unknown")}</div></div>
               <div><span class="label">Browser</span><div class="value">${escapeHtml(metadata.browser || "Unknown")}</div></div>
