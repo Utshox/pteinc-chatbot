@@ -524,12 +524,12 @@
 
     @media (max-width: 480px) {
       #ptsg-chat-window {
-        width: 100vw;
-        height: 100vh;
-        max-height: 100vh;
-        bottom: 0;
-        right: 0;
-        border-radius: 0;
+        width: calc(100vw - 24px);
+        height: 420px;
+        max-height: calc(100vh - 100px);
+        bottom: 104px;
+        right: 12px;
+        border-radius: 14px;
       }
       #ptsg-chat-send {
         min-width: 84px;
@@ -766,8 +766,9 @@
   autoResizeInput();
   restoreWidgetState();
 
-  // Auto-open the chat window after a brief delay so visitors notice it
-  if (!isOpen) {
+  // Auto-open the chat window after a brief delay (desktop only)
+  const isMobile = window.innerWidth <= 480;
+  if (!isOpen && !isMobile) {
     window.setTimeout(() => {
       if (!isOpen) toggleChat();
     }, 1500);
